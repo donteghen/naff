@@ -70,7 +70,7 @@ export function PlaceField({ label, value, onChange, error }: { label: string; v
       )}
       {hasPoint && (
         <div className="flex items-center justify-between gap-2 rounded-xl bg-green-tint px-3 py-2 text-sm font-bold text-green-ink">
-          <span>📍 {t("place.attached")} ({value.lat!.toFixed(4)}, {value.lng!.toFixed(4)})</span>
+          <span>📍 {t("place.attached")}</span>
           <button type="button" aria-label={t("place.remove")} onClick={() => onChange({ text: value.text })} className="flex h-9 w-9 items-center justify-center rounded-lg"><IconClose size={16} /></button>
         </div>
       )}
