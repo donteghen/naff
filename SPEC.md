@@ -14,7 +14,7 @@ One Next.js project, one Vercel deployment, one MongoDB database, three hosts:
 
 | Host (env) | App | Audience |
 |---|---|---|
-| `SITE_HOST` (e.g. `naff.cm`) | Customer site: request form, my orders, account, public tracking `/t/<code>` | Users and guests |
+| `SITE_HOST` (e.g. `naff.cm`) | Customer site: landing page `/`, app home `/home`, request form, my orders, account, public tracking `/t/<code>` | Users and guests |
 | `DRIVER_HOST` (e.g. `driver.naff.cm`) | Driver app | Drivers |
 | `PANEL_HOST` (e.g. `panel.naff.cm`) | Admin panel | Admins |
 
@@ -202,7 +202,10 @@ No payment gateway. The platform records.
 - The user's own order view (logged in) and the guest order view show the full journey and the final screens (Delivered, Cancelled, Failed designs).
 
 ## 7. Customer site
-- Home: greeting, **New delivery**, active delivery card, recent orders (logged in), "Create an account: 5% off" banner (rate from settings, hidden when 0).
+- **Landing page `/`** (full width; where campaign, social and WhatsApp status links arrive): sticky header (How it works, Our towns, Payment, Track, EN|FR, Log in / My space, Send a parcel), hero (active towns, headline, Send / Track, discount chip when the rate > 0), track box (paste a link or code → `/t/<code>`), facts computed from real data (1 call, number of active towns, discount rate, 1 link — never invented numbers), five steps, same city vs another town, the one-link section, how you pay (3 moments), why NAFF, towns map drawn from the active cities, FAQ, final call to action (Send, Call us, WhatsApp from Settings → Contacts), footer. Shows the maintenance message when maintenance is on. Illustrations are static files in `public/landing/`.
+- Social preview: title, description and a 1200×630 image per language (`public/og-fr.png`, `public/og-en.png`). Private pages (guest link, orders, account, tracking) are not indexed; the driver app and the panel are never indexed.
+- Installable: each host has its own web manifest (`site`, `driver`, `panel`) with the NAFF icons.
+- App home `/home`: greeting, **New delivery**, active delivery card, recent orders (logged in), "Create an account: 5% off" banner (rate from settings, hidden when 0).
 - Request form (§6.2), forbidden items screen, "We will call you" screen.
 - Order view: status, agreed price with discount line, paid status, code + tracking link when available.
 - Account: register, login, forgot PIN, set new PIN, profile, My orders (All / Active / Done).

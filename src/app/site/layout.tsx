@@ -1,11 +1,22 @@
-import { I18nProvider } from "@/i18n/client";
+import type { Metadata } from "next";
 import { getLanguage } from "@/i18n/server";
+import { translate } from "@/i18n";
 
-export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+// Customer host: title, description and social preview (WhatsApp, Facebook…) in the visitor's language.
+export async function generateMetadata(): Promise<Metadata> {
   const language = await getLanguage();
-  return (
-    <I18nProvider language={language}>
-      <div className="mx-auto flex min-h-dvh w-full max-w-[560px] flex-col bg-mist md:my-6 md:min-h-[calc(100dvh-48px)] md:rounded-[32px] md:shadow-[var(--shadow-float)]">{children}</div>
-    </I18nProvider>
-  );
+  const title = translate(language, "meta.title");
+  const description = translate(language, "meta.description");
+  const image = { url: `/og-${language}.png`, width: 1200, height: 630, alt: title };
+  return {
+    title: { default: title, template: "%s · NAFF" },
+    description,
+    manifest: "/site.webmanifest",
+    openGraph: { type: "website", siteName: "NAFF", title, description, images: [image], locale: language === "fr" ? "fr_CM" : "en_CM" },
+    twitter: { card: "summary_large_image", title, description, images: [image.url] },
+  };
+}
+
+export default function SiteRootLayout({ children }: { children: React.ReactNode }) {
+  return children;
 }

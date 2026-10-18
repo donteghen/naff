@@ -23,7 +23,7 @@ export function RegisterForm() {
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        run("register", () => registerUserAction(form), () => router.push("/"));
+        run("register", () => registerUserAction(form), () => router.push("/home"));
       }}
     >
       <Field label={t("form.name")} error={fieldError("name")}>

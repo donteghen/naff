@@ -13,6 +13,8 @@ import { formatPhone } from "@/lib/phone";
 import { requireUserPage } from "@/server/auth/current";
 import { getSettings } from "@/server/services/settings";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function AccountPage() {
   const user = await requireUserPage("/account");
   const { t } = await getTranslator();

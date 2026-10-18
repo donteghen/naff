@@ -17,7 +17,7 @@ export default async function UserSetPinPage() {
       <main className="flex flex-1 flex-col gap-4 px-5 pt-6 pb-8">
         <h1 className="text-[26px] font-extrabold">{t("auth.setPinTitle")}</h1>
         <p className="text-sm text-muted">{t("auth.setPinIntro")}</p>
-        <SetPinForm action={setUserPinAction} pinLength={USER_PIN_LENGTH} requireCurrent={false} afterSave="/" loginPath="/account/login" />
+        <SetPinForm action={setUserPinAction} pinLength={USER_PIN_LENGTH} requireCurrent={false} afterSave="/home" loginPath="/account/login" />
       </main>
     </>
   );

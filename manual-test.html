@@ -87,7 +87,7 @@
     <p class="sub">Use these values so the steps read the same for everyone. PINs are examples; use your own if you prefer.</p>
     <table class="data">
       <tr><th>What</th><th>Value</th></tr>
-      <tr><td><span class="app SITE">SITE</span></td><td><code>http://localhost:3000</code> (production: your domain)</td></tr>
+      <tr><td><span class="app SITE">SITE</span></td><td><code>http://localhost:3000</code> landing page, <code>/home</code> customer app (production: your domain)</td></tr>
       <tr><td><span class="app DRIVER">DRIVER</span></td><td><code>http://driver.localhost:3000</code> (production: driver.your-domain)</td></tr>
       <tr><td><span class="app PANEL">PANEL</span></td><td><code>http://panel.localhost:3000</code> (production: panel.your-domain)</td></tr>
       <tr><td>Super admin</td><td>Aïcha · <code>690 00 00 00</code> · PIN <code>123456</code></td></tr>
@@ -134,7 +134,7 @@ const PARTS = [
     ["PANEL", "Reset PIN and log out everywhere", ["Drivers → Brice → Reset PIN, then Log out everywhere"], "New temporary PIN shown once; Brice's next tap shows the login page. Log Brice in again and set a PIN."],
   ]},
   { title: "4. Customer account", sub: "SPEC §4.2", tests: [
-    ["SITE", "Discount banner and register", ["Logged out home → \"Create an account: 5% off\" → Create account as Marie (phone, your email, PIN 1234 twice)"], "Logged in straight away; home says \"Good …, Marie\". Registering the same phone again: \"This number is already used\"."],
+    ["SITE", "Discount banner and register", ["Logged out, open /home → \"Create an account: 5% off\" → Create account as Marie (phone, your email, PIN 1234 twice)"], "Logged in straight away; /home says \"Good …, Marie\". Registering the same phone again: \"This number is already used\"."],
     ["SITE", "Forgot PIN", ["Log out → Forgot PIN → Marie's phone; then an unknown phone"], "Same neutral message for both. SMTP on: an email with a 4-digit temporary PIN; logging in with it forces a new PIN; the old PIN works until then. SMTP off: \"Reset by email is not available. Please call us.\"", "SMTP"],
     ["SITE", "Profile", ["Account → change name, email → Save; change PIN with the current PIN"], "Saved. PIN change needs the current PIN and signs out Marie's other devices."],
   ]},
@@ -218,6 +218,17 @@ const PARTS = [
     ["SITE", "French / English", ["Switch EN | FR on each app"], "No raw keys (like \"order.something\") anywhere. French is the default for a new visitor."],
     ["CLI", "Final checks", ["npm run typecheck && npm test && npm run build"], "All succeed (49 tests)."],
     ["CLI", "Deploy", ["Vercel: add your domain, driver.<domain> and panel.<domain> to the same project; set the env variables; run create-super-admin against production"], "Each subdomain opens its own app with its own login."],
+  ]},
+  { title: "15. Landing page, sharing and brand assets", sub: "SPEC §7 (landing), README Brand assets", tests: [
+    ["SITE", "Landing sections", ["Open / logged out on a phone, then on a computer"], "Header, hero with the active towns, track box, facts, five steps, same city / another town, one-link section, how you pay, why NAFF, towns map, FAQ, final call to action, footer. Everything in the chosen language; nothing overflows sideways."],
+    ["SITE", "Facts are real", ["Settings → Cities: switch a city off; Pricing: set 0, then back to 5"], "The towns chip, the \"N towns\" fact and the map follow the active cities. At 0%: no discount chip, the fact shows \"0 card\", the FAQ and final call to action drop the discount line."],
+    ["SITE", "Track box", ["Paste a full tracking link, then only the 12-character code, then rubbish"], "The first two open the tracking page; rubbish shows \"We cannot find this parcel\"; an empty input is highlighted."],
+    ["SITE", "Calls to action", ["Click Send a parcel, Call (number from Settings → Contacts), WhatsApp"], "Send opens the request form. Call dials the number. WhatsApp opens a chat with \"Hello NAFF, I would like to send a parcel.\" Call and WhatsApp are hidden while their number is empty."],
+    ["SITE", "Logged in", ["Log in as Marie and open /"], "Header shows \"My space\" (goes to /home); the \"Create account\" links disappear. The NAFF logo inside the app goes to /home."],
+    ["SITE", "Maintenance", ["Switch to maintenance, open /"], "An amber notice at the top of the landing page; Send a parcel leads to the maintenance screen."],
+    ["SITE", "Share preview", ["Deploy (or use a tunnel), paste the site link in WhatsApp, or check it on opengraph.xyz"], "Preview card with the NAFF image, title \"NAFF · Livraisons partout au Cameroun\" and the description (English for visitors who chose EN)."],
+    ["SITE", "Icons and install", ["Look at the browser tab; on Android choose \"Add to home screen\" on the site, the driver app and the panel"], "NAFF icon in the tab. Each app installs with its own name (NAFF, NAFF Driver, NAFF Panel) and the amber N icon, and opens on its own host."],
+    ["SITE", "Not indexed", ["View the source of a tracking page, the driver app and the panel"], "They contain <meta name=\"robots\" content=\"noindex, nofollow\">; the landing page does not."],
   ]},
 ];
 

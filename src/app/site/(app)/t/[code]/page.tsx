@@ -11,6 +11,8 @@ import { hasReached } from "@/lib/order-steps";
 import { load } from "@/server/debug";
 import { getTracking } from "@/server/services/order-queries";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export const dynamic = "force-dynamic";
 
 /** Public tracking page: no login, reduced data, "expired" once the delivery has ended. */

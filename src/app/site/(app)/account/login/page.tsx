@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/server/auth/current";
 import { getSettings } from "@/server/services/settings";
 
 function safeNext(next: string | undefined) {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
 }
 
 export default async function UserLoginPage({ searchParams }: { searchParams: Promise<{ next?: string; ended?: string }> }) {

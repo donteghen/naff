@@ -5,10 +5,18 @@ import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "600", "700", "800"], variable: "--font-jakarta", display: "swap" });
 
+// Icons and share images are static files in /public (generated once; see README "Brand assets").
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
   title: "NAFF",
   description: "NAFF — deliveries across Cameroon",
-  icons: { icon: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

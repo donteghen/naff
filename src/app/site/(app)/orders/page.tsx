@@ -10,6 +10,8 @@ import { requireUserPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listUserOrders } from "@/server/services/order-queries";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export const dynamic = "force-dynamic";
 
 const FILTERS = ["all", "active", "done"] as const;

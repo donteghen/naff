@@ -5,6 +5,8 @@ import { requireUserPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { getUserOrder } from "@/server/services/order-queries";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export const dynamic = "force-dynamic";
 
 export default async function UserOrderPage({ params }: { params: Promise<{ number: string }> }) {

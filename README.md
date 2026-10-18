@@ -10,13 +10,27 @@ Delivery coordination for a small delivery business in Cameroon: customers reque
 
 | Host | App | Who |
 |---|---|---|
-| `your-domain` | Customer site: request form, my orders, account, public tracking `/t/<code>` | Customers and guests |
+| `your-domain` | Customer site: landing page `/`, app home `/home`, request form, my orders, account, public tracking `/t/<code>` | Customers and guests |
 | `driver.your-domain` | Driver app: jobs, money to collect, status steps, delivery code | Drivers |
 | `panel.your-domain` | Admin panel: dashboard, live queue, orders, drivers, users, reports, logs, settings | Admins |
 
 `src/middleware.ts` picks the app from the host name (`driver.*`, `panel.*`, anything else = site) and prefixes the path with `/driver`, `/panel` or `/site`. Each app has its own session cookie (host-only), so the three logins never mix.
 
 Locally: `http://localhost:3000`, `http://driver.localhost:3000`, `http://panel.localhost:3000` (Chrome and Firefox resolve `*.localhost` by themselves).
+
+## Brand assets (generated once)
+All in `public/`, made from the NAFF logo and the design illustrations. Ask to regenerate them if the brand changes.
+
+| File | Use |
+|---|---|
+| `favicon.ico` (16/32/48), `icon.svg` | Browser tab |
+| `apple-touch-icon.png` (180) | iPhone / iPad home screen |
+| `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | Android install, referenced by the manifests |
+| `site.webmanifest`, `driver.webmanifest`, `panel.webmanifest` | "Add to home screen" for each app |
+| `og-fr.png`, `og-en.png` (1200×630) | Preview when a link is shared on WhatsApp, Facebook, X… (language of the visitor, French by default) |
+| `landing/*.svg` | Landing page illustrations |
+
+Set `SITE_URL` in production: share previews need absolute image URLs.
 
 ## Stack
 Next.js 15 (App Router, server components + server actions) · TypeScript · Tailwind CSS 4 · MongoDB + Mongoose · Zod · bcryptjs · Ably (admin live alerts) · nodemailer · Leaflet + OpenStreetMap · Vitest.
@@ -69,7 +83,7 @@ The server publishes every order event on the channel `admin-alerts` with the Ab
 ## Code map
 ```
 src/middleware.ts            host → app
-src/app/site|driver|panel    the three apps (pages only)
+src/app/site|driver|panel    the three apps (pages only); site/(landing) = public landing, site/(app) = customer app
 src/actions/                 server actions: check the session, call a service
 src/server/services/         all business rules (orders.ts is the heart)
 src/server/models/           Mongoose models

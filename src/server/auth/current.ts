@@ -32,7 +32,7 @@ export async function getCurrentAdmin(): Promise<(AdminDoc & { sessionId: string
   return { ...admin, sessionId: session._id };
 }
 
-export async function requireUserPage(nextPath = "/") {
+export async function requireUserPage(nextPath = "/home") {
   const user = await getCurrentUser();
   if (!user) redirect(`/account/login?next=${encodeURIComponent(nextPath)}`);
   if (user.mustChangePin) redirect("/account/set-pin");
