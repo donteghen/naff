@@ -50,7 +50,7 @@ export default async function LandingPage() {
             <p className="mt-5 max-w-[560px] text-lg leading-relaxed text-side-text md:text-xl">{t("landing.heroBody")}</p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link href="/request" className={buttonClass("action", "lg", "animate-pulse-amber px-8")}>{t("landing.send")} →</Link>
-              <a href="#track" className={buttonClass("secondary", "lg", "bg-transparent px-8 text-white shadow-[inset_0_0_0_2px_#5B6BA0]")}>{t("landing.track")}</a>
+              <a href="#track" className={buttonClass("secondary", "lg", "bg-transparent px-8 shadow-[inset_0_0_0_2px_#5B6BA0]")}>{t("landing.track")}</a>
             </div>
             <div className="mt-5 flex flex-wrap gap-2 text-sm font-bold">
               {rate && <span className="rounded-full bg-navy-soft px-3 py-1.5">★ {t("landing.chipDiscount", { rate })}</span>}
