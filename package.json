@@ -1,0 +1,42 @@
+{
+  "name": "naff",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "create-super-admin": "tsx --env-file=.env.local scripts/create-super-admin.ts",
+    "reset-super-admin-pin": "tsx --env-file=.env.local scripts/reset-super-admin-pin.ts",
+    "seed-demo": "tsx --env-file=.env.local scripts/seed-demo.ts"
+  },
+  "engines": {
+    "node": ">=20.9"
+  },
+  "dependencies": {
+    "ably": "^2.29.0",
+    "bcryptjs": "^3.0.3",
+    "leaflet": "^1.9.4",
+    "mongoose": "^8.24.5",
+    "next": "^15.5.28",
+    "nodemailer": "^7.0.13",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^20.19.43",
+    "@types/nodemailer": "^8.0.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "mongodb-memory-server": "^10.4.3",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

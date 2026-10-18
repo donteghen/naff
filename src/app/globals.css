@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* NAFF brand tokens (docs/design/brand-and-design-system).
+   One navy, one amber. Navy = structure and passed steps, amber = "now" and "do this".
+   Green and red only for delivered/paid and failed/issue. */
+@theme {
+  --color-navy: #0b1b3f;
+  --color-navy-soft: #16275a;
+  --color-navy-line: #223468;
+  --color-indigo: #14307a;
+  --color-indigo-tint: #e3e9f8;
+  --color-amber: #ffb81c;
+  --color-amber-soft: #fff1cc;
+  --color-amber-ink: #6b4600;
+  --color-mist: #f5f7fc;
+  --color-cloud: #e3e8f4;
+  --color-line: #eef1f8;
+  --color-field: #d9dfee;
+  --color-muted: #5b6584;
+  --color-faint: #8f98b3;
+  --color-side-text: #c9d3f0;
+  --color-green: #12a150;
+  --color-green-ink: #0b6b3a;
+  --color-green-tint: #ddf5e7;
+  --color-red: #d92d20;
+  --color-red-ink: #a8231a;
+  --color-red-tint: #fde4e1;
+
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+
+  --radius-card: 18px;
+  --shadow-card: 0 1px 3px #0b1b3f14, 0 6px 18px #0b1b3f0a;
+  --shadow-float: 0 18px 44px #0b1b3f33;
+
+  --animate-rise: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-fade: fade 0.2s ease-out both;
+  --animate-pulse-amber: pulse-amber 1.6s infinite;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse-amber {
+  50% { box-shadow: 0 0 0 12px #ffb81c33; }
+}
+@keyframes float {
+  to { transform: translateY(-6px); }
+}
+@keyframes drift {
+  to { transform: translateX(40px); }
+}
+.scene-float { animation: float 5s ease-in-out infinite alternate; }
+.scene-drift { animation: drift 30s linear infinite alternate; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-mist);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+}
+
+/* Buttons press down a little, like the designs. */
+.press { transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease; }
+.press:active:not(:disabled) { transform: scale(0.98); filter: brightness(0.96); }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Thin scrollbars inside panels. */
+.thin-scroll { scrollbar-width: thin; scrollbar-color: #d9dfee transparent; }
+
+/* Print-free, readable focus ring everywhere. */
+:focus-visible { outline: 3px solid #ffb81c; outline-offset: 2px; }

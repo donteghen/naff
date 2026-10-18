@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NAFF · Manual tests</title>
+<style>
+  :root { --bg:#F5F7FC; --card:#fff; --ink:#0B1B3F; --muted:#5B6584; --line:#EEF1F8; --field:#D9DFEE; --navy:#0B1B3F; --indigo:#14307A; --amber:#FFB81C; --ok:#12A150; --bad:#D92D20; --warn:#B7791F; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position:sticky; top:0; z-index:3; background:var(--navy); color:#fff; padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; }
+  header h1 { margin:0; font-size:19px; margin-right:auto; }
+  .bar { flex:1 1 180px; max-width:320px; height:10px; background:#16275A; border-radius:99px; overflow:hidden; }
+  .bar span { display:block; height:100%; background:var(--ok); width:0; transition:width .3s; }
+  #counts { font-weight:700; font-size:14px; }
+  .tools { display:flex; gap:6px; flex-wrap:wrap; }
+  .tools button { background:#16275A; color:#fff; border:0; border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; min-height:38px; }
+  .tools button.on { background:var(--amber); color:var(--navy); }
+  main { max-width:980px; margin:0 auto; padding:18px 16px 70px; }
+  .card { background:var(--card); border-radius:18px; box-shadow:0 1px 3px #0b1b3f14, 0 6px 18px #0b1b3f0a; padding:16px 18px; margin-bottom:16px; }
+  h2 { margin:0 0 6px; font-size:18px; }
+  .sub { color:var(--muted); margin:0 0 8px; font-size:14px; }
+  ol.how { margin:6px 0 0; padding-left:20px; font-size:15px; }
+  table.data { width:100%; border-collapse:collapse; font-size:14px; }
+  table.data th { text-align:left; color:var(--muted); font-size:12px; text-transform:uppercase; padding:6px 8px; }
+  table.data td { border-top:1px solid var(--line); padding:7px 8px; vertical-align:top; }
+  code { background:var(--line); padding:1px 6px; border-radius:6px; font-size:13px; }
+  details.part { background:var(--card); border-radius:18px; box-shadow:0 1px 3px #0b1b3f14, 0 6px 18px #0b1b3f0a; margin-bottom:14px; }
+  details.part > summary { list-style:none; cursor:pointer; padding:14px 18px; display:flex; gap:10px; align-items:center; }
+  details.part > summary::-webkit-details-marker { display:none; }
+  details.part > summary h2 { margin:0; flex:1; }
+  details.part > summary .pc { font-size:13px; font-weight:700; color:var(--muted); white-space:nowrap; }
+  details.part > summary .pc.done { color:var(--ok); }
+  details.part > summary::after { content:"›"; font-size:22px; color:var(--muted); transition:transform .2s; }
+  details.part[open] > summary::after { transform:rotate(90deg); }
+  .part-body { padding:0 18px 10px; }
+  .test { border-top:1px solid var(--line); padding:12px 0; display:grid; grid-template-columns:1fr auto; gap:6px 14px; }
+  .test.hidden { display:none; }
+  .head { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .num { font-weight:800; color:var(--muted); font-size:13px; min-width:30px; }
+  .app { font-size:11px; font-weight:800; padding:2px 8px; border-radius:99px; letter-spacing:.3px; }
+  .app.SITE { background:#FFF1CC; color:#6B4600; }
+  .app.DRIVER { background:#DDF5E7; color:#0B6B3A; }
+  .app.PANEL { background:#E3E9F8; color:#14307A; }
+  .app.CLI { background:#0B1B3F; color:#fff; }
+  .needs { font-size:11px; font-weight:800; padding:2px 8px; border-radius:99px; background:#FDE4E1; color:#A8231A; }
+  .steps { color:#2B3A5E; font-size:14px; margin:6px 0 0; padding-left:20px; }
+  .expect { font-size:14px; color:#0B6B3A; margin-top:6px; background:#F1FBF5; border-radius:10px; padding:6px 10px; }
+  .expect::before { content:"Expected: "; font-weight:800; }
+  .result { display:flex; gap:6px; align-items:start; }
+  .result button { border:2px solid var(--field); background:#fff; border-radius:10px; padding:6px 10px; font-weight:700; cursor:pointer; min-width:58px; min-height:40px; }
+  .result button.pass.on { background:var(--ok); color:#fff; border-color:var(--ok); }
+  .result button.fail.on { background:var(--bad); color:#fff; border-color:var(--bad); }
+  .result button.skip.on { background:var(--warn); color:#fff; border-color:var(--warn); }
+  textarea { grid-column:1 / -1; width:100%; border:2px solid var(--field); border-radius:10px; padding:8px; font:inherit; font-size:14px; display:none; }
+  .test.failed textarea, .test.has-note textarea, .test.noting textarea { display:block; }
+  .note-link { grid-column:1 / -1; font-size:12px; color:var(--indigo); cursor:pointer; background:none; border:0; padding:0; text-align:left; }
+  @media (max-width:640px) { .test { grid-template-columns:1fr; } header h1 { width:100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NAFF · Manual tests</h1>
+  <div class="bar"><span id="progress"></span></div>
+  <div id="counts">0 / 0</div>
+  <div class="tools">
+    <button data-filter="all" class="on">All</button>
+    <button data-filter="todo">To do</button>
+    <button data-filter="fail">Failed</button>
+    <button id="expand">Open all</button>
+    <button id="copy">Copy report</button>
+    <button id="reset">Reset</button>
+  </div>
+</header>
+<main>
+  <div class="card">
+    <h2>How to use this run-through</h2>
+    <ol class="how">
+      <li>Do part 0 once, then go through the parts <b>in order</b>: each part uses what the previous one created (accounts, drivers, orders A–E).</li>
+      <li>Every test says <b>where</b> to do it: <span class="app SITE">SITE</span> customer site, <span class="app DRIVER">DRIVER</span> driver app, <span class="app PANEL">PANEL</span> admin panel, <span class="app CLI">CLI</span> terminal. Tests tagged <span class="needs">ABLY</span> or <span class="needs">SMTP</span> need those env variables; Skip them otherwise.</li>
+      <li>Click <b>Pass</b>, <b>Fail</b> or <b>Skip</b>. A failure opens a note box: write what you saw (and the NF- number). Results stay in this browser. Use <b>To do</b> / <b>Failed</b> to filter, and <b>Copy report</b> to share.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>Addresses and test data</h2>
+    <p class="sub">Use these values so the steps read the same for everyone. PINs are examples; use your own if you prefer.</p>
+    <table class="data">
+      <tr><th>What</th><th>Value</th></tr>
+      <tr><td><span class="app SITE">SITE</span></td><td><code>http://localhost:3000</code> (production: your domain)</td></tr>
+      <tr><td><span class="app DRIVER">DRIVER</span></td><td><code>http://driver.localhost:3000</code> (production: driver.your-domain)</td></tr>
+      <tr><td><span class="app PANEL">PANEL</span></td><td><code>http://panel.localhost:3000</code> (production: panel.your-domain)</td></tr>
+      <tr><td>Super admin</td><td>Aïcha · <code>690 00 00 00</code> · PIN <code>123456</code></td></tr>
+      <tr><td>Second admin</td><td>Joël · <code>690 00 00 01</code> · your email (for alerts)</td></tr>
+      <tr><td>Drivers</td><td>Eric (Douala) <code>650 11 22 33</code> · Samuel (Douala) <code>677 44 55 66</code> · Brice (Buea) <code>655 98 76 54</code></td></tr>
+      <tr><td>Customer account</td><td>Marie Ngo · <code>677 12 34 56</code> · your email · PIN <code>1234</code></td></tr>
+      <tr><td>Guest sender</td><td>Rose Etoa · <code>678 11 12 22</code></td></tr>
+      <tr><td>Receivers</td><td>Paul Kamga <code>699 00 11 22</code> · Alain Mba <code>696 33 34 44</code></td></tr>
+      <tr><td>Location link</td><td><code>https://maps.google.com/?q=4.0511,9.7679</code></td></tr>
+      <tr><td>Orders you create</td><td><b>A</b> local sale (Marie) · <b>B</b> guest, receiver pays fee · <b>C</b> paid now by mobile money · <b>D</b> Douala → Buea to the address · <b>E</b> Douala → Buea collect at agency</td></tr>
+    </table>
+  </div>
+
+  <div id="sections"></div>
+</main>
+
+<script>
+// Each test: [app, title, steps[], expected, needs?]
+const PARTS = [
+  { title: "0. Setup", sub: "Once, before everything else", tests: [
+    ["CLI", "Install and checks", ["npm install", "cp .env.example .env.local → set MONGODB_URI (+ ABLY_API_KEY and SMTP_* if you have them)", "npm run typecheck && npm test"], "Typecheck clean and 49 tests passing."],
+    ["CLI", "Starter data and super admin", ["npm run seed-demo", "npm run create-super-admin → Aïcha, 690 00 00 00, PIN 123456", "npm run dev"], "Douala, Buea, Yaoundé and the agency Express Voyages exist. The super admin is created. The three addresses open (customer site, driver login, panel login)."],
+  ]},
+  { title: "1. Panel sign-in and admins", sub: "SPEC §4.1, §4.4", tests: [
+    ["PANEL", "Super admin logs in", ["Panel → phone 690 00 00 00, PIN 123456"], "Dashboard opens. Sidebar: Dashboard, Live queue, In transit, Orders, Users, Drivers, Reports, Activity log, Audit log, Settings. Footer: your name and \"Super admin\"."],
+    ["PANEL", "Wrong PIN and lockout", ["Log out → wrong PIN 5 times → then the right PIN"], "\"Wrong phone or PIN\" each time (also for an unknown phone). After 5 failures: \"Too many attempts\" even with the right PIN. Wait LOGIN_WINDOW_MINUTES (or restart with a lower value) and log in again."],
+    ["PANEL", "Create the second admin", ["Settings → Admins → Add admin: Joël, 690 00 00 01, your email → Create admin"], "A 6-digit temporary PIN is shown once. Audit log: \"Admin created\"."],
+    ["PANEL", "First login forces a new PIN", ["Private window → log in as Joël with the temporary PIN"], "\"Choose your PIN\" comes first; nothing else opens until a new 6-digit PIN is saved."],
+    ["PANEL", "Admins tab is super-admin only", ["As Joël: Settings, then open /settings?tab=admins"], "No Admins tab; the URL shows the Cities tab instead."],
+    ["PANEL", "Change my PIN", ["As Joël: Settings → My account → wrong current PIN, then the right one"], "\"Current PIN is wrong\", then \"PIN changed\". Joël's other devices are signed out."],
+    ["PANEL", "Reset and deactivate an admin", ["As Aïcha: Admins → Joël → Edit → Reset PIN (tap twice)", "Then Deactivate, then Reactivate"], "New temporary PIN shown once; Joël's next click shows \"Session ended\". Deactivated: Joël can't log in. The super admin row has no Edit."],
+  ]},
+  { title: "2. Settings", sub: "SPEC §5, §9, §10", tests: [
+    ["PANEL", "Cities", ["Settings → Cities → add Limbe → Switch off → Switch on"], "Limbe appears; while off it is missing from the customer form and the quick order."],
+    ["PANEL", "Agencies", ["Settings → Agencies → Add agency with only Douala ticked → Save", "Tick Douala + Buea with addresses → Save"], "One city: \"Choose at least two cities\". Two cities: saved, listed as \"Douala (…) · Buea (…)\"."],
+    ["PANEL", "Pricing", ["Settings → Pricing → 5 → Save"], "Saved. Audit log: \"Pricing updated\" with old → new."],
+    ["PANEL", "Contacts", ["Settings → Contacts: Call us, WhatsApp, MTN MoMo + name, Orange Money + name → Save → reload"], "Values kept. On the customer site the Call us button appears and dials that number."],
+    ["PANEL", "WhatsApp preference", ["Settings → My account → Open WhatsApp in: Web / App"], "Remembered on this device (default Web on a computer, App on a phone)."],
+  ]},
+  { title: "3. Drivers", sub: "SPEC §4.3, §8", tests: [
+    ["PANEL", "Create three drivers", ["Drivers → Add driver: Eric (Douala), Samuel (Douala), Brice (Buea)"], "A 4-digit temporary PIN for each, shown once. Cards show city and \"Offline\"."],
+    ["DRIVER", "First login", ["Phone → driver app → Eric's phone + temporary PIN"], "\"Choose your PIN\" first, then \"Hi Eric\" with empty job lists."],
+    ["DRIVER", "Availability", ["Tap Available, reload; repeat for Samuel and Brice"], "The choice is kept. The panel driver list shows \"Available\"."],
+    ["PANEL", "Reset PIN and log out everywhere", ["Drivers → Brice → Reset PIN, then Log out everywhere"], "New temporary PIN shown once; Brice's next tap shows the login page. Log Brice in again and set a PIN."],
+  ]},
+  { title: "4. Customer account", sub: "SPEC §4.2", tests: [
+    ["SITE", "Discount banner and register", ["Logged out home → \"Create an account: 5% off\" → Create account as Marie (phone, your email, PIN 1234 twice)"], "Logged in straight away; home says \"Good …, Marie\". Registering the same phone again: \"This number is already used\"."],
+    ["SITE", "Forgot PIN", ["Log out → Forgot PIN → Marie's phone; then an unknown phone"], "Same neutral message for both. SMTP on: an email with a 4-digit temporary PIN; logging in with it forces a new PIN; the old PIN works until then. SMTP off: \"Reset by email is not available. Please call us.\"", "SMTP"],
+    ["SITE", "Profile", ["Account → change name, email → Save; change PIN with the current PIN"], "Saved. PIN change needs the current PIN and signs out Marie's other devices."],
+  ]},
+  { title: "5. Requests from the site (create orders A–E)", sub: "SPEC §6.2", tests: [
+    ["SITE", "Form rules", ["New delivery → Continue without answering", "Another town → look at sale and fee questions"], "\"Required\" when nothing is chosen. For another town: no \"receiver pays on delivery\" for goods and no \"Receiver, on delivery\" for the fee. \"Now, by mobile money\" offers only MTN MoMo / Orange Money."],
+    ["SITE", "Order A · local sale (as Marie)", ["Same city, Douala → Yes, receiver pays on delivery, 15000 → Receiver, on delivery, Cash → Small → Phones & electronics → contents + tick the declaration → Pickup: Map pin; Drop-off: paste the location link → receiver Paul Kamga → Send request"], "Sender is prefilled. Map pin and link both show \"📍 Location attached\". Review shows \"Local sale. Receiver pays 15,000 XAF for the goods on delivery…\". After sending: \"We will call you shortly\" + NF number + Call us."],
+    ["SITE", "Declaration and forbidden items", ["During any request: Continue without the declaration; open \"See the list of forbidden items\""], "\"You must confirm the declaration.\" The list shows the 5 forbidden groups and the liability note."],
+    ["SITE", "Order B · guest, receiver pays the fee", ["Log out → New delivery: same city, No just sending, Receiver on delivery (Cash) → … sender Rose Etoa, receiver Alain Mba", "First try the same phone for sender and receiver"], "Same phone: \"Please check the form\" + \"Fix my answers\" goes back to the people screen. After fixing: the private page /o/<long token> with \"We will call you shortly\"."],
+    ["SITE", "Order C · paid now by mobile money", ["New delivery (guest or Marie): same city → Now, by mobile money → Orange Money → … Send"], "Created normally."],
+    ["SITE", "Order D · Douala → Buea to the address (as Marie)", ["Another town, Douala → Buea → Deliver to the address → Sender, at pickup, Cash → … receiver Paul Kamga"], "9 questions; created."],
+    ["SITE", "Order E · Douala → Buea, collect at agency", ["Another town → Receiver collects at the agency → Sender at pickup → …"], "Created."],
+  ]},
+  { title: "6. Live queue, alerts and approval", sub: "SPEC §6.3, §9.1", tests: [
+    ["PANEL", "Live alerts", ["Keep the Live queue open, click once anywhere (enables sound)", "Send one more request from the phone"], "Chip \"● Live · sound on\". Beep, toast \"New request · NF-…\", Alerts badge +1, the list refreshes by itself. Every later status change gives the same beep.", "ABLY"],
+    ["PANEL", "New request email", ["With Joël's email set, send a request"], "Email \"Nouvelle demande / New request NF-…\" with the summary and an Open button. No other event sends email.", "SMTP"],
+    ["PANEL", "Without Ably", ["Remove ABLY_API_KEY and restart; then set FALLBACK_TO_REFRESH=true and restart"], "First: chip \"Live alerts off\", no refreshing. Then: \"Refreshing every 15s\" and the data reloads."],
+    ["PANEL", "Queue filters", ["All / Requested / Active / Issues"], "Counts match the list; the selected row is amber."],
+    ["PANEL", "Approve A with discount", ["Queue → A → type 2500 in Agreed price"], "Typed digits appear; preview 2,500 − 125 (5%) = 2,375. Approve → Approved; the activity shows the price and who set it."],
+    ["PANEL", "B needs the receiver first", ["Open B"], "\"Confirm with receiver first\" in the summary. Approve stays disabled until \"Receiver confirmed\" is ticked. Guest: no discount. Approve with 2000."],
+    ["PANEL", "C needs the payment", ["Open C, enter a price"], "Approve stays disabled until \"Payment received (Orange Money)\" is ticked. After approval C shows Paid."],
+    ["PANEL", "D and E need the agency fee", ["Open D, then E"], "\"Agency fee\" (admin only) is required (0 allowed). Approve D with 6000 / 1500, E with 5000 / 1200."],
+    ["PANEL", "Send price on WhatsApp", ["On A click \"Send price\""], "WhatsApp (Web or app per your setting) opens a chat with Marie and a prefilled price message."],
+    ["PANEL", "Quick order (phone caller)", ["Quick order → fill every block from scratch → tick \"Price already agreed: approve now\" → 3000 → Create and approve"], "Opens the new order: Approved, source \"Admin-entered\", no discount, not linked to any account."],
+  ]},
+  { title: "7. Local delivery · order A", sub: "SPEC §6.3–6.5", tests: [
+    ["PANEL", "Assign", ["A → Drivers → list"], "Only Douala drivers, with Available / On job / Offline and current jobs. Assign Eric → \"Awaiting driver\"."],
+    ["DRIVER", "Decline and reassign", ["Eric → Awaiting my confirmation → A → Decline", "Panel: assign Eric again"], "A goes back to Approved, alert in the panel, activity \"Driver declined\"."],
+    ["DRIVER", "Confirm → tracking starts", ["Eric → A → Confirm job"], "Driver confirmed. Marie's order page now shows the 4-digit code and the tracking link with copy buttons. Panel: tracking WhatsApp buttons appear."],
+    ["DRIVER", "Pickup", ["Eric → A → Picked up"], "No pickup money card (fee is paid on delivery). Status Picked up."],
+    ["DRIVER", "Delivery money card", ["Eric → A"], "Amber card \"Collect from receiver 17,375 XAF — 15,000 goods + 2,375 delivery fee\" and 4 code boxes."],
+    ["DRIVER", "Wrong code lock", ["Type a wrong code 3 times"], "\"… 2 tries left\", \"… 1 …\", then \"Code locked… Call the admin\". Panel A: \"Code locked after 3 tries\" + Unlock code."],
+    ["DRIVER", "Deliver", ["Panel: Unlock code → Eric types the code from Marie's page → Confirm · Delivered"], "Delivered screen: \"Paid, paid to this driver\", \"Collected on this job: 17,375 XAF\". Panel: fee paid to Eric, goods collected by Eric."],
+    ["PANEL", "Goods handed to seller", ["A → Money → Goods handed: Yes, by Eric → Save"], "Saved and logged; Dashboard \"Goods not yet handed over\" goes down."],
+    ["DRIVER", "Pickup money card (order B)", ["Assign B to Samuel, confirm as Samuel → open B"], "Fee is on delivery, so no pickup card; at delivery the card shows only the fee."],
+  ]},
+  { title: "8. Intercity · orders D and E", sub: "SPEC §6.3, In transit board", tests: [
+    ["DRIVER", "Origin leg ends at the agency", ["Assign D to Eric; Eric confirms and taps \"I collected 6,000 XAF · Picked up\"", "Open D again"], "Header \"… → agency in Douala\"; contact is the sender (no navigation to Buea). Drop form with agency (only agencies serving both cities), vehicle, agency driver phone, ETA (red, required). Locked: \"until the destination driver is assigned\"."],
+    ["PANEL", "Destination driver", ["D → assign Brice as destination driver"], "Only Buea drivers listed. Note under drivers: drop unlocks once the destination driver is set."],
+    ["DRIVER", "Drop at agency", ["Eric → D → fill agency, LT 482 AB, a phone, an ETA 1 hour in the past → Dropped at agency"], "\"Register the parcel under: Brice …\". Status Dropped at agency; panel shows the handover card."],
+    ["PANEL", "Confirm drop → In transit", ["In transit → D → \"Confirm drop\""], "Status In transit; origin photo ✓. Row red with \"ETA … · passed\"; the \"In transit, ETA passed\" filter counts it."],
+    ["PANEL", "Arrived, then collection", ["Arrived at agency B → Brice confirms D in his app → Collected at destination"], "Collected only after Brice confirmed. Tick \"Destination photo confirmed\" (does not block)."],
+    ["DRIVER", "Last mile", ["Brice → D → code from Marie's page → Confirm · Delivered"], "Delivered. No money to collect (prepaid at pickup)."],
+    ["PANEL", "Order E · collect at agency", ["Assign Eric, confirm, pick up, drop (registered under the receiver) → Confirm drop → Arrived at agency B → \"Delivered (collect at agency)\""], "No delivery code anywhere. Before the last step, the tracking page reads \"Ready for collection at agency B\" with agency and vehicle."],
+    ["PANEL", "Replace destination driver in transit", ["On another to-address order in transit: change the destination driver"], "Allowed; activity \"Driver reassigned\"."],
+  ]},
+  { title: "9. Admin acting for a driver (no network)", sub: "SPEC §6.3", tests: [
+    ["PANEL", "Full journey from the panel", ["Quick order → assign Samuel → Next step: Confirm job, Picked up, then type the code (as if read by phone) → Confirm · Delivered"], "Each step works from the order page. Activity says \"on behalf of Samuel (no network)\". Money is recorded against Samuel."],
+  ]},
+  { title: "10. Exits, issues and edits", sub: "SPEC §6.3, §6.4", tests: [
+    ["PANEL", "Cancel before pickup", ["New order → Cancel order → reason"], "Status Cancelled with the reason. Not offered after pickup."],
+    ["PANEL", "Fail after pickup", ["Order after pickup → Mark as failed → reason"], "Status Failed. Not offered before pickup."],
+    ["PANEL", "Issue flag", ["Flag issue with a note → check the queue → Clear issue"], "Row red, Issues filter counts it, status unchanged, no email."],
+    ["PANEL", "Edit price", ["Edit price without a reason, then with \"Extra distance\""], "Refused without a reason; then saved with old → new in the activity."],
+    ["PANEL", "Edit details and payment answers", ["Before pickup: change drop-off, receiver and fee timing"], "Saved with old/new values; the same rules as the form apply."],
+    ["PANEL", "Fee correction", ["Money → Not paid, or paid to another driver, with a reason"], "Saved; activity \"Fee record corrected\"."],
+  ]},
+  { title: "11. Tracking and guest pages", sub: "SPEC §6.5, §6.6", tests: [
+    ["SITE", "Active tracking", ["Open the tracking link of an order in progress"], "Night-road scene with lanterns lit to the current step, title, \"Not live: refresh…\" + Refresh, Paid / Not paid (no amount), steps with times. No phone, full address, price or code (check the page source too)."],
+    ["SITE", "Finished and unknown", ["Open the link of A (delivered), of a cancelled order, and /t/ABCDEFGHJKMN"], "Delivered/cancelled: only \"Tracking expired, this delivery is complete\". Unknown: \"We cannot find this parcel\". Both with Call us."],
+    ["SITE", "Guest code shown once", ["Use B: after the driver confirmed, open the /o/… page, then reload it"], "First load: code + \"Copy the code now. You will not see it again.\" After reload: \"The code was already shown once…\". The tracking link stays."],
+    ["SITE", "Logged-in code", ["Marie → My orders → D during delivery → reload several times"], "The code shows every time until delivery ends."],
+    ["SITE", "My orders", ["Marie → My orders → All / Active / Done"], "Correct lists; delivered orders open with the Delivered card and full journey."],
+  ]},
+  { title: "12. Maintenance mode", sub: "SPEC §10", tests: [
+    ["PANEL", "Switch to maintenance", ["Settings → Operational status → Switch to maintenance (tap twice)"], "Amber banner across the panel. Audit log entry."],
+    ["SITE", "Customer site in maintenance", ["Open the home page and /request; open a tracking link and an order page"], "Home and /request show the maintenance screen with Call us. Tracking and order pages still work."],
+    ["DRIVER", "Driver app keeps working", ["Open a job"], "Works normally. Switch back to Live in the panel."],
+  ]},
+  { title: "13. Users, logs, dashboard and reports", sub: "SPEC §9", tests: [
+    ["PANEL", "Users", ["Users → search Marie by phone → open"], "Edit name/phone/email, Reset PIN (shown once), Log out everywhere, Deactivate/Reactivate; her orders listed. All in the Audit log."],
+    ["PANEL", "Activity log", ["Filter by date, actor type, actor name, action, order NF-…"], "Rows match; newest first; paging; order numbers link to orders."],
+    ["PANEL", "Audit log", ["Filter by admin, action, target type and target name"], "Accounts, PINs, settings, cities, agencies and maintenance changes with old → new values."],
+    ["PANEL", "Dashboard", ["Today / Last 7 days / This month / a custom range → Apply"], "Orders by status, running, in transit / ETA passed / at agency B / open issues, drivers available / on job / offline, money (gross, discounts, net, agency fees, margin, fees by drivers, fees at request, goods collected, goods not handed), splits. No comparisons."],
+    ["PANEL", "Reports", ["Reports → Day / Week / Month; hover a bar; Show table"], "4 trend charts (current period amber), ▲/▼ vs previous period, times and rates, top routes, areas, customers with repeat rate, cancellation/failure reasons, agency fee and margin per route."],
+  ]},
+  { title: "14. Devices, languages and build", sub: "CLAUDE.md", tests: [
+    ["PANEL", "Phone, tablet, desktop", ["Panel at ~390px, ~820px and ≥1280px"], "Phone: navy top bar with ☰ drawer and EN|FR. Tablet: narrow icon sidebar (sign-out is an icon). Desktop: full navy sidebar; queue list and selected order side by side. Never sideways scrolling."],
+    ["DRIVER", "Driver app on a phone", ["Go through a job at 390px"], "56px main buttons, loud amber money cards, nothing cut off."],
+    ["SITE", "Site on phone and tablet", ["Home, form, order and tracking at 390px and 820px"], "Centred app card on tablet; nothing overflows."],
+    ["SITE", "Not found pages", ["Unknown path on each of the 3 addresses"], "Each app shows its own \"Page not found\"."],
+    ["SITE", "French / English", ["Switch EN | FR on each app"], "No raw keys (like \"order.something\") anywhere. French is the default for a new visitor."],
+    ["CLI", "Final checks", ["npm run typecheck && npm test && npm run build"], "All succeed (49 tests)."],
+    ["CLI", "Deploy", ["Vercel: add your domain, driver.<domain> and panel.<domain> to the same project; set the env variables; run create-super-admin against production"], "Each subdomain opens its own app with its own login."],
+  ]},
+];
+
+const KEY = "naff-manual-tests-v2";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch {}
+let filter = "all";
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} update(); };
+const esc = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+const root = document.getElementById("sections");
+const rows = [];
+PARTS.forEach((part, p) => {
+  const details = document.createElement("details");
+  details.className = "part";
+  details.open = p < 2;
+  details.innerHTML = `<summary><h2>${esc(part.title)}</h2><span class="pc"></span></summary><div class="part-body"><p class="sub">${esc(part.sub)}</p></div>`;
+  const body = details.querySelector(".part-body");
+  part.tests.forEach(([app, title, steps, expected, needs], t) => {
+    const id = `${p}-${t}`;
+    const row = document.createElement("div");
+    row.className = "test";
+    row.innerHTML = `<div>
+        <div class="head"><span class="num">${p}.${t + 1}</span><span class="app ${app}">${app}</span>${needs ? `<span class="needs">${needs}</span>` : ""}<b>${esc(title)}</b></div>
+        <ol class="steps">${steps.map((step) => `<li>${esc(step)}</li>`).join("")}</ol>
+        <div class="expect">${esc(expected)}</div>
+      </div>
+      <div class="result"><button class="pass">Pass</button><button class="fail">Fail</button><button class="skip">Skip</button></div>
+      <button class="note-link" type="button">+ add a note</button>
+      <textarea rows="2" placeholder="What happened? (add the NF- number)"></textarea>`;
+    const note = row.querySelector("textarea");
+    const paint = () => {
+      const r = state[id] || {};
+      ["pass", "fail", "skip"].forEach((k) => row.querySelector("." + k).classList.toggle("on", r.result === k));
+      row.classList.toggle("failed", r.result === "fail");
+      row.classList.toggle("has-note", !!r.note);
+      note.value = r.note || "";
+    };
+    ["pass", "fail", "skip"].forEach((k) => row.querySelector("." + k).onclick = () => {
+      state[id] = { ...(state[id] || {}), result: state[id]?.result === k ? null : k };
+      paint(); save();
+    });
+    row.querySelector(".note-link").onclick = () => { row.classList.add("noting"); note.focus(); };
+    note.oninput = () => { state[id] = { ...(state[id] || {}), note: note.value }; save(); };
+    paint();
+    body.appendChild(row);
+    rows.push({ id, row, part: p });
+  });
+  root.appendChild(details);
+});
+
+function update() {
+  const total = rows.length;
+  const done = rows.filter(({ id }) => state[id]?.result).length;
+  const fails = rows.filter(({ id }) => state[id]?.result === "fail").length;
+  document.getElementById("counts").textContent = `${done} / ${total}${fails ? ` · ${fails} failed` : ""}`;
+  document.getElementById("progress").style.width = `${(done / total) * 100}%`;
+  document.querySelectorAll("details.part").forEach((details, p) => {
+    const mine = rows.filter((r) => r.part === p);
+    const partDone = mine.filter(({ id }) => state[id]?.result).length;
+    const partFails = mine.filter(({ id }) => state[id]?.result === "fail").length;
+    const label = details.querySelector(".pc");
+    label.textContent = `${partDone} / ${mine.length}${partFails ? ` · ${partFails} failed` : ""}`;
+    label.classList.toggle("done", partDone === mine.length && !partFails);
+  });
+  rows.forEach(({ id, row }) => {
+    const result = state[id]?.result;
+    const hide = (filter === "todo" && result) || (filter === "fail" && result !== "fail");
+    row.classList.toggle("hidden", Boolean(hide));
+  });
+}
+update();
+
+document.querySelectorAll("[data-filter]").forEach((button) => button.onclick = () => {
+  filter = button.dataset.filter;
+  document.querySelectorAll("[data-filter]").forEach((other) => other.classList.toggle("on", other === button));
+  if (filter !== "all") document.querySelectorAll("details.part").forEach((details) => details.open = true);
+  update();
+});
+document.getElementById("expand").onclick = () => {
+  const parts = document.querySelectorAll("details.part");
+  const open = ![...parts].every((details) => details.open);
+  parts.forEach((details) => details.open = open);
+  document.getElementById("expand").textContent = open ? "Close all" : "Open all";
+};
+document.getElementById("reset").onclick = () => { if (confirm("Clear all results?")) { state = {}; save(); location.reload(); } };
+document.getElementById("copy").onclick = async () => {
+  const lines = [];
+  PARTS.forEach((part, p) => part.tests.forEach(([app, title], t) => {
+    const r = state[`${p}-${t}`] || {};
+    lines.push(`[${(r.result || "todo").toUpperCase()}] ${p}.${t + 1} ${app} · ${title}${r.note ? ` — ${r.note}` : ""}`);
+  }));
+  try { await navigator.clipboard.writeText(lines.join("\n")); } catch {}
+  document.getElementById("copy").textContent = "Copied!";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy report", 1500);
+};
+</script>
+</body>
+</html>
