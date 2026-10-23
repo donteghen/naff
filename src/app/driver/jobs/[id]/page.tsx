@@ -12,6 +12,9 @@ import { formatXAF } from "@/lib/money";
 import { hasReached, isFinal } from "@/lib/order-steps";
 import { formatPhone } from "@/lib/phone";
 import { requireDriverPage } from "@/server/auth/current";
+import { translate } from "@/i18n";
+import { photoMessage, waMeLink } from "@/lib/whatsapp";
+import { getSettings } from "@/server/services/settings";
 import { load } from "@/server/debug";
 import { getDriverJob } from "@/server/services/order-queries";
 
@@ -33,6 +36,12 @@ export default async function DriverJobPage({ params }: { params: Promise<{ id: 
   const target = goingToPickup ? job.pickup : job.dropoff;
   const contact = goingToPickup || toAgency ? job.sender : job.receiver;
   const showNavigate = goingToPickup || !toAgency;
+
+  // Photo to the office, in the order's language (only when the office WhatsApp number is set).
+  const settings = await getSettings();
+  const otx = (key: string, values?: Record<string, string | number>) => translate(job.language, key, values);
+  const photoStep = job.role === "origin" && toAgency && job.status === "picked_up" ? "drop" : job.role === "destination" && job.status === "arrived_at_agency_b" ? "collect" : null;
+  const photoHref = photoStep && settings.whatsappPhone ? waMeLink(settings.whatsappPhone, photoMessage(otx, { number: `NF-${job.number}`, step: photoStep, agency: job.handover.agencyName })) : null;
 
   if (finished) {
     const delivered = job.status === "delivered";
@@ -102,7 +111,7 @@ export default async function DriverJobPage({ params }: { params: Promise<{ id: 
           </Notice>
         )}
 
-        <JobActions job={job} agencies={agencies} originCityId={job.originCityId} />
+        <JobActions job={job} agencies={agencies} originCityId={job.originCityId} photoHref={photoHref} />
       </main>
     </>
   );

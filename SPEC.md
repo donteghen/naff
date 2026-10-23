@@ -4,7 +4,7 @@ Delivery coordination platform for a small delivery business in Cameroon (Douala
 This file is the result of the alignment on the source documents in `docs/source/` and the designs in `docs/design/`.
 **Where this file differs from those documents, this file wins.**
 
-Principle: the platform records and organises manual work. Humans communicate (phone, WhatsApp) and decide. Prices, assignment and money are human decisions. Nothing is automated "just in case".
+Principle: the platform records and organises manual work. Humans communicate (phone, WhatsApp) and decide. The only automatic messages are admin alerts in the panel (Ably) and job notifications to drivers' phones (ntfy). Prices, assignment and money are human decisions. Nothing is automated "just in case".
 
 ---
 
@@ -78,7 +78,7 @@ Money: integer XAF. Time zone: Africa/Douala.
 ## 5. Data (collections)
 
 - **users**: name, phone, email, pinHash, tempPin {hash, expiresAt} | null, mustChangePin, active, lastSeenAt.
-- **drivers**: name, phone, cityId, pinHash, mustChangePin, available (bool), active, lastSeenAt.
+- **drivers**: name, phone, cityId, pinHash, mustChangePin, available (bool), active, lastSeenAt, ntfyTopic (secret, random notification channel; see §9.2).
 - **admins**: name, phone, email (optional, receives new-request alert emails), pinHash, mustChangePin, isSuperAdmin, active, lastSeenAt.
 - **sessions**: see §4.1.
 - **rateLimits**: key, count, windowStart (TTL).
@@ -97,6 +97,7 @@ Nothing is hard-deleted: users, drivers, admins, cities and agencies are deactiv
 ### 6.1 Fields
 - `number` (sequential, shown as `NF-1042`), `trackingCode` (12 chars, alphabet without look-alikes, random, unique), `deliveryCode` (4 digits, none for collect-at-agency), `guestToken` (random, guest orders only).
 - `source`: `web` | `admin`. `userId` (only when a logged-in user booked on the site).
+- `language`: `fr` | `en`, the order's language (§6.2b).
 - `type`: `local` | `intercity`. `intercityMode`: `to_address` | `collect_at_agency`.
 - `originCityId`, `destinationCityId` (same for local). No customer-chosen agency: the origin driver picks the agency at the drop.
 - Sender: name, phone. Receiver: name, phone. Server rule: `senderPhone !== receiverPhone`.
@@ -133,10 +134,16 @@ After sending: **"We will call you shortly"** screen with the order number and a
 - Guest: gets a private order link (`/o/<guestToken>`) saved in a cookie on the device, to see status and price.
 - New orders are refused while the operational status is `maintenance`.
 
-**Admin quick order** (`Quick order` button in the panel top bar): the same questions on one compact page, filled from scratch every time (no templates, no presets). `source = admin`, never linked to a user, no discount. The admin may enter the price and approve in the same step.
+**Admin quick order** (`Quick order` button in the panel top bar): the same questions on one compact page, filled from scratch every time (no templates, no presets). `source = admin`, never linked to a user, no discount. The admin must choose the order's language (FR / EN, the caller's language). The admin may enter the price and approve in the same step.
 
 **Plain-language summary** (shown to admin at the top of each order and on the review screen), e.g. "Local sale. Receiver pays 15,000 XAF for the goods plus the delivery fee on arrival."
 **Confirm with receiver first** is set when the order is not a sale and the receiver pays the delivery fee.
+
+### 6.2b Order language
+- One language per order. Site orders take the language the customer was using when sending the request. On a quick order the admin must choose FR or EN (the language of the caller).
+- Shown as a FR / EN tag on the order in the panel, so whoever calls speaks that language. The admin can correct it in "Edit details" (logged).
+- **Every message about the order is written in the order's language, whoever receives it**: driver notifications (ntfy), WhatsApp messages to the driver, sender and receiver, the driver's photo message to the office, the customer's "Notify NAFF" message and the tracking message they share.
+- Screens always follow the reader's own EN/FR choice: opening a notification shows the page in their preferred language. Admin toasts are part of the panel screen, so they follow the admin's panel language. The driver "Send test" notification is not about an order and uses the admin's language.
 
 ### 6.3 Statuses (enforced on the server)
 
@@ -222,6 +229,8 @@ No payment gateway. The platform records.
 - Destination job: collect at agency X, vehicle, registered name, then deliver to …
 - Delivered screen: "Paid, paid to this driver" and "Collected on this job: X XAF" (information only).
 - No retries or offline queue: when the network fails, the driver phones the admin, who acts on their behalf.
+- **Send the parcel photo** (WhatsApp to the office number from Settings → Contacts): on the drop-at-agency form and on the destination "collect at the agency" screen. Prefilled with the order number, the agency and the step, in the order's language; the driver attaches the photo.
+- Job notifications on the phone through the ntfy app (§9.2).
 
 ## 9. Admin panel
 Sidebar: **Dashboard** (home) · **Live queue** · **In transit** · **Orders** · **Users** · **Drivers** · **Reports** · **Activity log** · **Audit log** · **Settings**. Top bar: **Quick order**, live status chip, alerts badge, EN/FR. Sidebar footer: admin name, role (Admin / Super admin), Sign out. Banner when maintenance is on.
@@ -236,13 +245,38 @@ Sidebar: **Dashboard** (home) · **Live queue** · **In transit** · **Orders** 
 - **Reports** (analysis): pick period granularity (day / week / month); current vs previous period comparisons; trend charts with rising/falling signal for orders, revenue and margin; top routes and areas; top customers and repeat rate; request-to-approval and request-to-delivery times; time at agencies; cancellation and failure reasons; agency fee and margin per route. Charts are plain SVG.
 - **Activity log** and **Audit log**: read-only, newest first, filters: date range, actor type, actor, action, order number / target, paginated.
 - **Settings**: Cities, Agencies, Pricing (discount rate), Contacts (Call us phone, WhatsApp, MTN MoMo and Orange Money numbers and names), Operational status (live / maintenance), My PIN, Admins (super admin only), WhatsApp preference.
-- **WhatsApp buttons**: "Send price to sender", "Send tracking link to sender", "Send tracking link to receiver". One button each. Per-device setting "Open WhatsApp in: Web / App" (default Web on computers, App on phones and tablets): Web → `web.whatsapp.com/send`, App → `whatsapp://send`.
+- **WhatsApp messages** (§9.3). Per-device setting "Open WhatsApp in: Web / App" (default Web on computers, App on phones and tablets): Web → `web.whatsapp.com/send`, App → `whatsapp://send` (the phone app, or WhatsApp Desktop when installed).
 
 ### 9.1 Live alerts (admin only)
 - Ably channel `admin-alerts`. The server publishes on every order event (Ably REST SDK). The browser gets a subscribe-only token from `/api/ably-token` on the panel host (admin session required) and listens with Ably's Server-Sent Events endpoint (`EventSource`, no client library). It reconnects with a new token when the connection drops.
 - Every event plays the **same sound**, shows a short toast and increments the alerts badge (in memory, reset on click, no history).
 - **Email** only for a **new request**, to every active admin who has an email address on their account.
 - If Ably is not configured: when `FALLBACK_TO_REFRESH=true` the panel refreshes its data every `REFRESH_SECONDS` (15); otherwise the chip shows "Live alerts off". If SMTP is not configured, no email is sent.
+
+### 9.2 Driver notifications (ntfy)
+- Each driver has a secret, random ntfy channel (`ntfyTopic`), created with the driver. The driver installs the ntfy app once and subscribes to it (instructions, Copy and **Send test** on the driver's page in the panel).
+- The server posts to `NTFY_URL` (default `https://ntfy.sh`), with `NTFY_TOKEN` when a paid plan is used. A failed post is logged and never blocks the action.
+- Notifications, in the order's language, tapping opens the job in the driver app:
+  - **New job** → the newly assigned driver (first or second driver).
+  - **Job removed** → the previous driver, when unassigned or replaced.
+  - **Order cancelled** → the drivers still on the order.
+  - **Price changed** → the drivers still on the order (the amount to collect changes).
+  - **Go and collect** → the second driver, when the parcel arrives at the destination agency.
+  - **Code unlocked** → the final-leg driver.
+- Channels on ntfy.sh are public to anyone who knows the name, so notifications carry **no phone number, address, amount or code**: only the order number, the areas and what happened.
+- "Log out everywhere" and suspension give the driver a new channel, so a lost phone stops receiving notifications.
+- Customers get no automatic notifications; admins keep the panel alerts (§9.1).
+
+### 9.3 WhatsApp messages (sensitive and mission-critical only)
+All prefilled, in the order's language, nothing is sent automatically.
+| Where | To | When | Content |
+|---|---|---|---|
+| Panel, Drivers on the order | Assigned driver | After assignment only | **Send job details**: order number, route, size and type, pickup time, money to collect and when, sender and receiver names and phones, pickup address and map link, link to the job in the driver app. Second driver: agency, vehicle, registered name, arrival time, delivery address |
+| Panel, order page | Receiver | Code exists, delivery running, after a "sender asked for it" confirmation; logged | **Send delivery code** with the tracking link |
+| Panel, order page | Sender / receiver | Price agreed / tracking started | Price, tracking link (+ code to the sender) |
+| Driver app | Office | Agency drop; destination collection | Parcel photo message (§8) |
+| Customer, "We'll call you" screen | Office | After sending a request, if the office WhatsApp number is set | **Notify NAFF**: order number, route, sender's phone. Also the human fallback if driver notifications are refused (ntfy free limit) |
+| Customer, order page | Anyone (usually the receiver) | Once tracking starts | **Share on WhatsApp**: tracking link, and the code when shown |
 
 ## 10. Operational status
 `maintenance`: customer site shows a maintenance screen with Call us and refuses new requests; tracking pages and order views keep working; driver app keeps working; panel works and shows a banner. Toggle logged in the audit log.
@@ -257,7 +291,7 @@ Server actions and page loaders do not show readable JSON in the browser like AP
 - Server actions still appear in the browser Network tab as POST requests to the page.
 
 ## 13. Environment
-`MONGODB_URI`, `SITE_HOST`, `DRIVER_HOST`, `PANEL_HOST`, `SITE_URL`, `ABLY_API_KEY`, `FALLBACK_TO_REFRESH`, `REFRESH_SECONDS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_NAME`, `LOGIN_MAX_FAILS`, `LOGIN_WINDOW_MINUTES`, `PIN_RESET_MAX`, `PIN_RESET_WINDOW_MINUTES`, `TEMP_PIN_TTL_MINUTES`, `DELIVERY_CODE_MAX_ATTEMPTS`, `DEBUG_LOG`.
+`MONGODB_URI`, `SITE_HOST`, `DRIVER_HOST`, `PANEL_HOST`, `SITE_URL`, `PANEL_URL`, `DRIVER_URL`, `ABLY_API_KEY`, `NTFY_URL`, `NTFY_TOKEN`, `FALLBACK_TO_REFRESH`, `REFRESH_SECONDS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_NAME`, `LOGIN_MAX_FAILS`, `LOGIN_WINDOW_MINUTES`, `PIN_RESET_MAX`, `PIN_RESET_WINDOW_MINUTES`, `TEMP_PIN_TTL_MINUTES`, `DELIVERY_CODE_MAX_ATTEMPTS`, `DEBUG_LOG`.
 
 ## 14. Out of scope (V1)
-Automatic pricing, minimum fare, online payment, live GPS, photo upload, in-app chat, notifications to users or drivers, ratings and referrals, cash limits, waybills, linking guest orders to accounts, saved places or receivers, reorder, customer-chosen agency, order templates, driver issue reporting, offline retry queues, auto-refresh of customer pages, alert history, backups.
+Automatic pricing, minimum fare, online payment, live GPS, photo upload, in-app chat, automatic notifications to customers, ratings and referrals, cash limits, waybills, linking guest orders to accounts, saved places or receivers, reorder, customer-chosen agency, order templates, driver issue reporting, offline retry queues, auto-refresh of customer pages, alert history, backups.

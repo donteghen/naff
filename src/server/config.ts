@@ -18,5 +18,8 @@ export const config = {
   ablyConfigured: () => Boolean(process.env.ABLY_API_KEY),
   sessionDays: 7,
   siteUrl: () => (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, ""),
+  driverUrl: () => (process.env.DRIVER_URL || "http://driver.localhost:3000").replace(/\/$/, ""),
+  ntfyUrl: () => (process.env.NTFY_URL || "https://ntfy.sh").replace(/\/$/, ""),
+  ntfyToken: () => process.env.NTFY_TOKEN || "",
   panelUrl: () => (process.env.PANEL_URL || "http://panel.localhost:3000").replace(/\/$/, ""),
 };

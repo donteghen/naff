@@ -1,5 +1,6 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
 import type {
+  Language,
   FeeTiming,
   GoodsStatus,
   IntercityMode,
@@ -55,6 +56,8 @@ export type OrderDoc = {
   deliveryCode: string | null;
   guestToken: string | null;
   source: "web" | "admin";
+  /** Language of every message about this order (SPEC §6.2b). */
+  language: Language;
   userId: Types.ObjectId | null;
   createdByAdminId: Types.ObjectId | null;
 
@@ -124,6 +127,7 @@ const orderSchema = new Schema<OrderDoc>(
     deliveryCode: { type: String, default: null },
     guestToken: { type: String, default: null, index: { unique: true, partialFilterExpression: { guestToken: { $type: "string" } } } },
     source: { type: String, required: true },
+    language: { type: String, default: "fr" },
     userId: { type: Schema.Types.ObjectId, default: null, index: true },
     createdByAdminId: { type: Schema.Types.ObjectId, default: null },
 

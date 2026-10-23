@@ -1,7 +1,7 @@
 // Turns order documents into plain objects for each audience.
 // Privacy rules live here: who may see the delivery code, the agency fee, phones and addresses.
 
-import type { FeeTiming, GoodsStatus, IntercityMode, OrderStatus, OrderType, ParcelCategory, ParcelSize, PaymentMethod } from "@/lib/constants";
+import type { FeeTiming, Language, GoodsStatus, IntercityMode, OrderStatus, OrderType, ParcelCategory, ParcelSize, PaymentMethod } from "@/lib/constants";
 import { areaName } from "@/lib/location";
 import { hasReached, isFinal, journeySteps } from "@/lib/order-steps";
 import type { OrderDoc } from "../models/Order";
@@ -34,6 +34,7 @@ export function adminOrderView(order: OrderDoc, names: Names = {}) {
     trackingCode: order.trackingCode,
     deliveryCode: order.deliveryCode,
     source: order.source,
+    language: (order.language === "en" ? "en" : "fr") as Language,
     registered: Boolean(order.userId),
     userId: order.userId ? String(order.userId) : null,
     type: order.type as OrderType,
@@ -118,6 +119,8 @@ export function senderOrderView(order: OrderDoc, options: { showCode: boolean })
   return {
     id: String(order._id),
     number: order.number,
+    language: (order.language === "en" ? "en" : "fr") as Language,
+    senderPhone: order.sender.phone,
     trackingCode: order.trackingCode,
     type: order.type as OrderType,
     intercityMode: order.intercityMode as IntercityMode | null,
@@ -186,6 +189,7 @@ export function driverJobView(order: OrderDoc, role: "origin" | "destination", d
     id: String(order._id),
     number: order.number,
     role,
+    language: (order.language === "en" ? "en" : "fr") as Language,
     type: order.type as OrderType,
     intercityMode: order.intercityMode as IntercityMode | null,
     originCityId: String(order.originCityId),

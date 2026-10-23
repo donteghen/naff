@@ -1,15 +1,18 @@
+import { translate } from "@/i18n";
 import { getTranslator } from "@/i18n/server";
 import { formatDayAndTime } from "@/lib/dates";
 import { formatXAF, percent } from "@/lib/money";
 import { isFinal } from "@/lib/order-steps";
 import { formatPhone } from "@/lib/phone";
 import type { SenderOrderView } from "@/server/services/order-views";
+import { areaName } from "@/lib/location";
+import { notifyNaffMessage, shareTrackingMessage, waMeLink } from "@/lib/whatsapp";
 import { config } from "@/server/config";
 import { getSettings } from "@/server/services/settings";
 import { CopyButton } from "../CopyButton";
-import { IconPhone } from "../Icons";
+import { IconPhone, IconWhatsApp } from "../Icons";
 import { RefreshButton } from "../RefreshButton";
-import { Card, Chip, Notice, Row, StatusChip } from "../ui";
+import { buttonClass, Card, Chip, Notice, Row, StatusChip } from "../ui";
 import { CallUsButton } from "./CallUsButton";
 import { Timeline } from "./Timeline";
 
@@ -19,6 +22,13 @@ export async function SenderOrder({ order, guest, codeAlreadyShown = false }: { 
   const settings = await getSettings();
   const trackingLink = `${config.siteUrl()}/t/${order.trackingCode}`;
   const route = order.type === "intercity" ? `${order.originCityName} → ${order.destinationCityName}` : order.originCityName;
+  // Messages about the order are written in the order's language (SPEC §6.2b).
+  const otx = (key: string, values?: Record<string, string | number>) => translate(order.language, key, values);
+  const number = `NF-${order.number}`;
+  const notifyHref = settings.whatsappPhone
+    ? waMeLink(settings.whatsappPhone, notifyNaffMessage(otx, { number, route: `${areaName(order.pickupText)} → ${areaName(order.dropoffText)}${order.type === "intercity" ? ` (${route})` : ""}`, phone: formatPhone(order.senderPhone) }))
+    : null;
+  const shareHref = waMeLink(null, shareTrackingMessage(otx, { number, link: trackingLink, code: order.deliveryCode }));
 
   if (order.status === "requested") {
     return (
@@ -29,7 +39,15 @@ export async function SenderOrder({ order, guest, codeAlreadyShown = false }: { 
         {settings.callUsPhone && <p className="text-sm text-muted">{t("site.keepPhoneNear")}</p>}
         {guest && <Notice tone="info" className="w-full text-left">{t("site.guestKeepLink")}</Notice>}
         <div className="w-full"><RefreshButton /></div>
-        <div className="mt-auto w-full"><CallUsButton /></div>
+        <div className="mt-auto flex w-full flex-col gap-3">
+          {notifyHref && (
+            <a href={notifyHref} className={buttonClass("secondary", "lg", "w-full")}>
+              <IconWhatsApp size={20} />
+              {t("site.notifyNaff")}
+            </a>
+          )}
+          <CallUsButton />
+        </div>
       </main>
     );
   }
@@ -88,6 +106,10 @@ export async function SenderOrder({ order, guest, codeAlreadyShown = false }: { 
           <p className="text-sm font-bold">{t("site.trackingLink")}</p>
           <p className="text-sm break-all text-indigo">{trackingLink}</p>
           <CopyButton text={trackingLink} label={t("site.copyLink")} variant="primary" className="w-full" />
+          <a href={shareHref} className={buttonClass("secondary", "md", "w-full")}>
+            <IconWhatsApp size={18} />
+            {t("site.shareWhatsApp")}
+          </a>
           <p className="text-xs text-muted">{t("site.shareWithReceiver")}</p>
         </Card>
       ) : null}

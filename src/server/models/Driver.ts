@@ -10,6 +10,8 @@ export type DriverDoc = {
   available: boolean;
   active: boolean;
   lastSeenAt: Date | null;
+  /** Secret ntfy channel for job notifications (SPEC §9.2). */
+  ntfyTopic: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -24,6 +26,7 @@ const driverSchema = new Schema<DriverDoc>(
     available: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
     lastSeenAt: { type: Date, default: null },
+    ntfyTopic: { type: String, default: "" },
   },
   { timestamps: true },
 );

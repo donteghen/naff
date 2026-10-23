@@ -14,6 +14,8 @@ import { Order } from "../models/Order";
 import { User } from "../models/User";
 import { issueTemporaryPin } from "./auth";
 import { logAudit } from "./logs";
+import { driverTopic, rotateDriverTopic } from "./notify";
+import { generateNtfyTopic } from "@/lib/codes";
 
 type AdminRef = { _id: Types.ObjectId; name: string; isSuperAdmin?: boolean };
 
@@ -167,7 +169,7 @@ export async function createDriver(admin: AdminRef, input: { name: string; phone
   let driverId: Types.ObjectId;
   try {
     // A placeholder hash: the real temporary PIN is issued right after.
-    const driver = await Driver.create({ name, phone, cityId: input.cityId, pinHash: "-", mustChangePin: true });
+    const driver = await Driver.create({ name, phone, cityId: input.cityId, pinHash: "-", mustChangePin: true, ntfyTopic: generateNtfyTopic() });
     driverId = driver._id;
   } catch (error) {
     if (isDuplicateKeyError(error)) throw new ValidationError({ phone: "errors.phoneTaken" });
@@ -224,7 +226,10 @@ export async function setDriverActive(admin: AdminRef, driverId: string, active:
   driver.active = active;
   if (!active) driver.available = false;
   await driver.save();
-  if (!active) await endAllSessions("driver", driver._id);
+  if (!active) {
+    await endAllSessions("driver", driver._id);
+    await rotateDriverTopic(driver._id);
+  }
   await logAudit(admin, active ? "driver_reactivated" : "driver_suspended", { type: "driver", id: driver._id, name: driver.name });
 }
 
@@ -244,6 +249,8 @@ export async function endDriverSessions(admin: AdminRef, driverId: string) {
   const driver = await Driver.findById(driverId).lean();
   if (!driver) throw new AppError("errors.notFound");
   await endAllSessions("driver", driver._id);
+  // Lost phone: a new notification channel, so the old phone stops receiving job notifications.
+  await rotateDriverTopic(driver._id);
   await logAudit(admin, "driver_sessions_ended", { type: "driver", id: driver._id, name: driver.name });
 }
 
@@ -388,5 +395,6 @@ export async function getDriver(driverId: string) {
     active: driver.active,
     mustChangePin: driver.mustChangePin,
     lastSeenAt: driver.lastSeenAt?.toISOString() ?? null,
+    ntfyTopic: await driverTopic(driver._id),
   };
 }

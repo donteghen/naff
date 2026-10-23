@@ -6,6 +6,8 @@ import { runAction } from "@/server/errors";
 import { login, setNewPin } from "@/server/services/auth";
 import * as people from "@/server/services/people";
 import * as setup from "@/server/services/setup";
+import { sendDriverTestNotification } from "@/server/services/notify";
+import { getLanguage } from "@/i18n/server";
 
 type PersonInput = { name: string; phone: string; email: string };
 type DriverInput = { name: string; phone: string; cityId: string };
@@ -103,4 +105,11 @@ export async function saveContactsAction(input: { callUsPhone: string; whatsappP
 
 export async function setOperationalStatusAction(status: "live" | "maintenance") {
   return runAction("panel.setOperationalStatus", { status }, async () => setup.setOperationalStatus(await requireAdminAction(), status));
+}
+
+export async function sendDriverTestAction(driverId: string) {
+  return runAction("panel.sendDriverTest", { driverId }, async () => {
+    await requireAdminAction();
+    await sendDriverTestNotification(driverId, await getLanguage());
+  });
 }

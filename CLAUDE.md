@@ -8,7 +8,8 @@
 - Every order change goes through the order service, which writes the activity log. Every admin-side change outside orders writes the audit log. Nothing is hard-deleted.
 - All interface text goes in `src/i18n/fr.ts` and `src/i18n/en.ts`. French is the default, and TypeScript fails if a key is missing in English.
 - Money is integer XAF. Prices and totals are always calculated on the server. Time zone Africa/Douala.
-- The platform records manual work. No automation, fallbacks, retries, polling or conveniences that are not in SPEC. If Ably or SMTP is not configured, that feature is off (except the explicit `FALLBACK_TO_REFRESH` flag).
+- The platform records manual work. No automation, fallbacks, retries, polling or conveniences that are not in SPEC. If Ably or SMTP is not configured, that feature is off (except the explicit `FALLBACK_TO_REFRESH` flag). A failed ntfy post is logged and never blocks an action.
+- Every message about an order (driver notifications, WhatsApp texts) uses the order's language (`order.language`); screens use the reader's own language. Notifications never carry phone numbers, addresses, amounts or codes.
 - Operational limits (rate limits, code attempts, temp PIN lifetime) come from env variables with defaults in `src/server/config.ts`.
 - Free tiers first (Vercel, MongoDB Atlas M0, Ably free). Keep payloads small for 3G and cheap Android phones. No heavy libraries.
 

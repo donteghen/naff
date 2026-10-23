@@ -4,6 +4,7 @@
 import { Types } from "mongoose";
 import { CANCELLABLE_STATUSES, FAILABLE_STATUSES, MOBILE_MONEY_METHODS, type OrderStatus } from "@/lib/constants";
 import { fromLocalInput } from "@/lib/dates";
+import { hasReached } from "@/lib/order-steps";
 import { generateDigits, generateToken, generateTrackingCode } from "@/lib/codes";
 import { computePrice } from "@/lib/money";
 import { needsReceiverConfirmation, orderSummary } from "@/lib/order-summary";
@@ -33,6 +34,7 @@ import { Counter } from "../models/Counter";
 import { Driver, type DriverDoc } from "../models/Driver";
 import { Order, type OrderDoc } from "../models/Order";
 import { emailNewRequest, publishAlert } from "./alerts";
+import { notifyDriver } from "./notify";
 import { logActivity, type Actor } from "./logs";
 import { getSettings, isMaintenance } from "./settings";
 
@@ -141,6 +143,10 @@ export async function createOrder(params: {
   await connectDb();
   if (params.source === "web" && (await isMaintenance())) throw new AppError("errors.maintenance");
 
+  // Language of every message about this order (SPEC §6.2b): the site language, or the caller's language chosen by the admin.
+  if (params.source === "admin" && params.language !== "fr" && params.language !== "en") throw new ValidationError({ language: "errors.required" });
+  const language = params.language === "en" ? "en" : "fr";
+
   const parsed = orderInputSchema.safeParse(params.input);
   if (!parsed.success) throw new ValidationError(parsed.error);
   const input = parsed.data;
@@ -186,6 +192,7 @@ export async function createOrder(params: {
         deliveryCode: intercityMode === "collect_at_agency" ? null : generateDigits(4),
         guestToken: isGuest ? generateToken() : null,
         source: params.source,
+        language,
         userId: params.source === "web" ? (params.userId ?? null) : null,
         createdByAdminId: params.admin?._id ?? null,
         type: input.type,
@@ -322,6 +329,18 @@ export async function editPrice(admin: AdminRef, orderId: string, rawInput: Pric
     new: { grossPrice: order.grossPrice, netPrice: order.netPrice, agencyFee: order.agencyFee },
     reason: input.reason,
   });
+  if (order.status !== "delivered" && order.netPrice !== old.netPrice) {
+    for (const driverId of driversStillOnOrder(order)) await notifyDriver(driverId, "price_changed", order);
+  }
+}
+
+/** Drivers whose part of the job is not finished (the first driver of an intercity order is done once the parcel is at the agency). */
+function driversStillOnOrder(order: OrderDoc): Types.ObjectId[] {
+  const ids: Types.ObjectId[] = [];
+  const originDone = order.type === "intercity" && hasReached(order.status, "dropped_at_agency");
+  if (order.originDriverId && !originDone) ids.push(order.originDriverId);
+  if (order.destinationDriverId) ids.push(order.destinationDriverId);
+  return ids;
 }
 
 // ---------------------------------------------------------------------------
@@ -350,6 +369,8 @@ export async function assignDriver(admin: AdminRef, orderId: string, role: Drive
       details: { role, driverId: String(driver._id), driverName: driver.name, previousDriverId: previous ? String(previous) : null },
     });
     await changeStatus(order, "assigned", actor, { role, driverName: driver.name });
+    if (previous && String(previous) !== String(driver._id)) await notifyDriver(previous, "job_removed", order);
+    await notifyDriver(driver._id, "job_assigned", order);
     return;
   }
 
@@ -366,6 +387,8 @@ export async function assignDriver(admin: AdminRef, orderId: string, role: Drive
     driverName: driver.name,
     previousDriverId: previous ? String(previous) : null,
   });
+  if (previous && String(previous) !== String(driver._id)) await notifyDriver(previous, "job_removed", order);
+  await notifyDriver(driver._id, "job_assigned", order);
 }
 
 export async function unassignDriver(admin: AdminRef, orderId: string, role: DriverRole) {
@@ -378,6 +401,7 @@ export async function unassignDriver(admin: AdminRef, orderId: string, role: Dri
     order.originConfirmedAt = null;
     await logActivity(actor, order, "driver_unassigned", { details: { role, previousDriverId: previous ? String(previous) : null } });
     await changeStatus(order, "approved", actor, { role });
+    await notifyDriver(previous, "job_removed", order);
     return;
   }
   requireStatus(order, ["approved", "assigned", "driver_confirmed", "picked_up"]);
@@ -386,6 +410,7 @@ export async function unassignDriver(admin: AdminRef, orderId: string, role: Dri
   order.destinationDriverId = null;
   order.destinationConfirmedAt = null;
   await saveAndLog(order, actor, "driver_unassigned", { role, previousDriverId: String(previous) });
+  await notifyDriver(previous, "job_removed", order);
 }
 
 // ---------------------------------------------------------------------------
@@ -557,6 +582,7 @@ export async function markArrivedAtAgency(admin: AdminRef, orderId: string) {
   order.handover.arrivedAt = new Date();
   order.markModified("handover");
   await changeStatus(order, "arrived_at_agency_b", adminActor(admin));
+  if (order.intercityMode === "to_address") await notifyDriver(order.destinationDriverId, "go_collect", order);
 }
 
 /** Collect-at-agency: the admin phoned the receiver; our job ends here. */
@@ -586,7 +612,9 @@ export async function cancelOrder(admin: AdminRef, orderId: string, reasonInput:
   if (!parsed.success) throw new ValidationError(parsed.error);
   order.cancelReason = parsed.data.reason;
   order.issue = { ...order.issue, open: false };
+  const drivers = driversStillOnOrder(order);
   await changeStatus(order, "cancelled", adminActor(admin), { reason: parsed.data.reason });
+  for (const driverId of drivers) await notifyDriver(driverId, "job_cancelled", order);
 }
 
 export async function failOrder(admin: AdminRef, orderId: string, reasonInput: string) {
@@ -613,6 +641,7 @@ export async function unlockCode(admin: AdminRef, orderId: string) {
   order.codeAttempts = 0;
   order.codeLocked = false;
   await saveAndLog(order, adminActor(admin), "code_unlocked");
+  await notifyDriver(order.type === "local" ? order.originDriverId : order.destinationDriverId, "code_unlocked", order);
 }
 
 export async function editDetails(admin: AdminRef, orderId: string, rawInput: DetailsEditInput) {
@@ -637,6 +666,7 @@ export async function editDetails(admin: AdminRef, orderId: string, rawInput: De
     dropoff: order.dropoff.text,
     parcel: { size: order.parcel.size, category: order.parcel.category, contents: order.parcel.contents, itemCount: order.parcel.itemCount },
     pickupTime: order.pickupTime,
+    language: order.language,
   };
   order.sender = { name: input.sender.name, phone: senderPhone! };
   order.receiver = { name: input.receiver.name, phone: receiverPhone! };
@@ -644,6 +674,7 @@ export async function editDetails(admin: AdminRef, orderId: string, rawInput: De
   order.dropoff = { text: input.dropoff.text, lat: input.dropoff.lat ?? null, lng: input.dropoff.lng ?? null };
   order.parcel = { ...order.parcel, size: input.size, category: input.category, contents: input.contents, itemCount: input.itemCount };
   order.pickupTime = input.pickupTime;
+  if (input.language) order.language = input.language;
 
   await saveAndLog(order, adminActor(admin), "details_changed", {
     old,
@@ -654,6 +685,7 @@ export async function editDetails(admin: AdminRef, orderId: string, rawInput: De
       dropoff: order.dropoff.text,
       parcel: { size: input.size, category: input.category, contents: input.contents, itemCount: input.itemCount },
       pickupTime: input.pickupTime,
+      language: order.language,
     },
   });
 }
@@ -720,4 +752,11 @@ export async function setGoodsHanded(admin: AdminRef, orderId: string, handed: b
 /** Which role a driver has on an order (used by the driver app). */
 export function driverRoleOn(order: OrderDoc, driverId: Types.ObjectId): DriverRole | null {
   return roleOf(order, driverId);
+}
+
+/** The admin sent the delivery code to the receiver (only at the sender's request). Recorded, nothing else changes. */
+export async function logCodeShared(admin: AdminRef, orderId: string) {
+  const order = await loadOrder(orderId);
+  if (!order.deliveryCode || !hasReached(order.status, "driver_confirmed") || order.status === "delivered") throw new AppError("errors.wrongStatus");
+  await logActivity(adminActor(admin), order, "code_shared_with_receiver");
 }

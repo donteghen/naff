@@ -27,6 +27,8 @@ export function QuickOrderForm({ cities }: { cities: City[] }) {
   const [pickupTime, setPickupTime] = useState("");
   const [receiverConfirmed, setReceiverConfirmed] = useState(false);
   const [paymentReceived, setPaymentReceived] = useState(false);
+  // The caller's language: every message about this order uses it (SPEC §6.2b). No default on purpose.
+  const [language, setLanguage] = useState<"" | "fr" | "en">("");
 
   const update = (changes: Partial<OrderDraft>) => setDraft((current) => cleanDraft({ ...current, ...changes }));
   const errors: Record<string, string> = {};
@@ -39,7 +41,7 @@ export function QuickOrderForm({ cities }: { cities: City[] }) {
     const approve = approveNow
       ? { grossPrice: Number(gross), agencyFee: draft.type === "intercity" ? Number(agencyFee || 0) : null, pickupTime, receiverConfirmed, paymentReceived }
       : null;
-    run("quickOrder", () => createQuickOrderAction(draftToInput(draft), approve), (result) => router.push(`/orders/${result.id}`));
+    run("quickOrder", () => createQuickOrderAction(draftToInput(draft), approve, language), (result) => router.push(`/orders/${result.id}`));
   }
 
   const block = (title: string, content: React.ReactNode) => (
@@ -51,6 +53,26 @@ export function QuickOrderForm({ cities }: { cities: City[] }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
+      {block(t("quick.language"), (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted">{t("quick.languageHint")}</p>
+          <div className="flex gap-2" role="radiogroup">
+            {(["fr", "en"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="radio"
+                aria-checked={language === option}
+                onClick={() => setLanguage(option)}
+                className={`min-h-11 flex-1 rounded-xl text-sm font-extrabold ${language === option ? "bg-navy text-white" : "bg-white text-navy shadow-[inset_0_0_0_2px_var(--color-field)]"}`}
+              >
+                {t(`quick.language.${option}`)}
+              </button>
+            ))}
+          </div>
+          {errors.language && <p className="text-sm font-bold text-red">{tx(errors.language)}</p>}
+        </div>
+      ))}
       {block(t("form.q.people"), <PeopleQuestion draft={draft} update={update} errors={errors} />)}
       {block(t("form.q.where"), (
         <>

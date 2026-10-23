@@ -1,7 +1,6 @@
 "use server";
 
 import { Types } from "mongoose";
-import { getLanguage } from "@/i18n/server";
 import type { ApproveInput, DetailsEditInput, DropInput, OrderInput, PaymentEditInput, PriceEditInput } from "@/lib/schemas";
 import { requireAdminAction } from "@/server/auth/current";
 import { connectDb } from "@/server/db";
@@ -24,10 +23,11 @@ async function assignedDriver(orderId: string, role: Role) {
   return driver;
 }
 
-export async function createQuickOrderAction(input: OrderInput, approve: ApproveInput | null) {
-  return runAction("panel.quickOrder", { input, approve }, async () => {
+export async function createQuickOrderAction(input: OrderInput, approve: ApproveInput | null, language: string) {
+  return runAction("panel.quickOrder", { input, approve, language }, async () => {
     const admin = await requireAdminAction();
-    const created = await orders.createOrder({ input, source: "admin", admin, language: await getLanguage() });
+    // The caller's language, chosen by the admin (SPEC §6.2b).
+    const created = await orders.createOrder({ input, source: "admin", admin, language });
     if (approve) await orders.approveOrder(admin, created.id, approve);
     return { id: created.id, number: created.number };
   });
@@ -136,4 +136,8 @@ export async function deliveredForDriverAction(orderId: string, role: Role, code
     const admin = await requireAdminAction();
     await orders.markDelivered({ driver: await assignedDriver(orderId, role), admin }, orderId, code);
   });
+}
+
+export async function logCodeSharedAction(orderId: string) {
+  return runAction("panel.codeShared", { orderId }, async () => orders.logCodeShared(await requireAdminAction(), orderId));
 }

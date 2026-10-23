@@ -26,3 +26,8 @@ export function generateDigits(length: number): string {
 export function generateToken(): string {
   return randomBytes(32).toString("base64url");
 }
+
+/** Secret ntfy channel name for a driver: hard to guess, letters and digits only. */
+export function generateNtfyTopic(): string {
+  return `naff-${randomBytes(18).toString("base64url").replace(/[-_]/g, "x")}`;
+}

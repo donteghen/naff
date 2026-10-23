@@ -5,7 +5,10 @@ import { assignDriverAction, unassignDriverAction } from "@/actions/panel-orders
 import { useT } from "@/i18n/client";
 import { formatPhone } from "@/lib/phone";
 import type { DriverOption } from "@/server/services/order-queries";
+import { whatsappLink } from "@/lib/whatsapp";
+import { IconWhatsApp } from "../../Icons";
 import { useAction } from "../../use-action";
+import { useWhatsAppMode } from "./WhatsAppButtons";
 import { Avatar, Button, Chip, Notice } from "../../ui";
 
 type Role = "origin" | "destination";
@@ -20,6 +23,7 @@ export function AssignPanel({
   current,
   confirmed,
   canChange,
+  jobMessage,
 }: {
   orderId: string;
   role: Role;
@@ -29,10 +33,13 @@ export function AssignPanel({
   current: { id: string; name: string; phone: string } | null;
   confirmed: boolean;
   canChange: boolean;
+  /** Prefilled "Send job details" text, only once a driver is assigned. */
+  jobMessage: string | null;
 }) {
   const { t, tx } = useT();
   const { run, pending, error, errorValues } = useAction();
   const [open, setOpen] = useState(!current);
+  const [mode] = useWhatsAppMode();
   const options = drivers.filter((driver) => driver.cityId === cityId && driver.active);
 
   return (
@@ -48,6 +55,17 @@ export function AssignPanel({
           <span className="font-bold">{current.name}</span>
           <span className="text-sm text-muted">{formatPhone(current.phone)}</span>
           <Chip tone={confirmed ? "green" : "amber"}>{confirmed ? t("assign.confirmed") : t("assign.awaiting")}</Chip>
+          {jobMessage && (
+            <a
+              href={whatsappLink(current.phone, jobMessage, mode)}
+              target={mode === "web" ? "_blank" : undefined}
+              rel="noreferrer"
+              className="press inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-green-tint px-3 text-sm font-extrabold text-green-ink"
+            >
+              <IconWhatsApp size={16} />
+              {t("wa.sendJobDetails")}
+            </a>
+          )}
           {canChange && !confirmed && (
             <button type="button" disabled={pending} className="min-h-10 text-sm font-bold text-red" onClick={() => run("unassign", () => unassignDriverAction(orderId, role))}>{t("assign.unassign")}</button>
           )}

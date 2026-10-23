@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DriverManage } from "@/components/panel/DriverManage";
+import { DriverNotifications } from "@/components/panel/DriverNotifications";
+import { config } from "@/server/config";
 import { OrderRow } from "@/components/panel/OrderRow";
 import { IconBack } from "@/components/Icons";
 import { Card, Chip, EmptyState, PageTitle, SectionLabel, StatCard } from "@/components/ui";
@@ -47,6 +49,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
         <StatCard label={t("drivers.delivered7")} value={weekMoney.delivered} />
         <StatCard label={t("drivers.collected7")} value={formatXAF(weekMoney.fees + weekMoney.goods)} />
       </div>
+      <DriverNotifications driverId={id} topic={driver.ntfyTopic} server={config.ntfyUrl().replace(/^https?:\/\//, "")} />
       <DriverManage driver={{ id, name: driver.name, phone: formatPhone(driver.phone), cityId: driver.cityId, active: driver.active }} cities={cities.filter((city) => city.active || city.id === driver.cityId)} />
       <Card className="overflow-hidden p-0">
         <div className="p-4"><SectionLabel>{t("drivers.jobs", { count: orders.total })}</SectionLabel></div>

@@ -67,6 +67,7 @@ export function DetailsEdit({ order }: { order: AdminOrderView }) {
   const [dropoff, setDropoff] = useState<Place>({ text: order.dropoff.text, lat: order.dropoff.lat ?? undefined, lng: order.dropoff.lng ?? undefined });
   const [parcel, setParcel] = useState({ size: order.parcel.size, category: order.parcel.category, contents: order.parcel.contents, itemCount: String(order.parcel.itemCount) });
   const [pickupTime, setPickupTime] = useState(order.pickupTime);
+  const [language, setLanguage] = useState(order.language);
   return (
     <Section title={t("edit.details")}>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -90,7 +91,13 @@ export function DetailsEdit({ order }: { order: AdminOrderView }) {
         </Field>
         <Field label={t("form.contents")}><input className={inputClass()} value={parcel.contents} onChange={(event) => setParcel({ ...parcel, contents: event.target.value })} /></Field>
         <Field label={t("form.itemCount")}><input className={inputClass()} inputMode="numeric" value={parcel.itemCount} onChange={(event) => setParcel({ ...parcel, itemCount: event.target.value.replace(/\D/g, "") })} /></Field>
-        <Field label={t("approve.pickupTime")} className="sm:col-span-2"><input className={inputClass()} value={pickupTime} onChange={(event) => setPickupTime(event.target.value)} /></Field>
+        <Field label={t("approve.pickupTime")}><input className={inputClass()} value={pickupTime} onChange={(event) => setPickupTime(event.target.value)} /></Field>
+        <Field label={t("order.language")} hint={t("order.languageHint")}>
+          <select className={inputClass()} value={language} onChange={(event) => setLanguage(event.target.value as "fr" | "en")}>
+            <option value="fr">{t("quick.language.fr")}</option>
+            <option value="en">{t("quick.language.en")}</option>
+          </select>
+        </Field>
       </div>
       {form.feedback}
       <Button
@@ -100,7 +107,7 @@ export function DetailsEdit({ order }: { order: AdminOrderView }) {
           form.setSaved(false);
           form.run(
             "editDetails",
-            () => editDetailsAction(order.id, { sender, receiver, pickup: { text: pickup.text, lat: pickup.lat ?? null, lng: pickup.lng ?? null }, dropoff: { text: dropoff.text, lat: dropoff.lat ?? null, lng: dropoff.lng ?? null }, size: parcel.size, category: parcel.category, contents: parcel.contents, itemCount: Number(parcel.itemCount) || 1, pickupTime }),
+            () => editDetailsAction(order.id, { sender, receiver, pickup: { text: pickup.text, lat: pickup.lat ?? null, lng: pickup.lng ?? null }, dropoff: { text: dropoff.text, lat: dropoff.lat ?? null, lng: dropoff.lng ?? null }, size: parcel.size, category: parcel.category, contents: parcel.contents, itemCount: Number(parcel.itemCount) || 1, pickupTime, language }),
             () => form.setSaved(true),
           );
         }}

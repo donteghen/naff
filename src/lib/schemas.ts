@@ -74,6 +74,7 @@ export const detailsEditSchema = z.object({
   contents: text(300),
   itemCount: z.coerce.number({ invalid_type_error: "errors.number" }).int("errors.number").min(1, "errors.number").max(999, "errors.number"),
   pickupTime: z.string().trim().max(60, "errors.tooLong").optional().default(""),
+  language: z.enum(["fr", "en"]).optional(),
 });
 export type DetailsEditInput = z.input<typeof detailsEditSchema>;
 

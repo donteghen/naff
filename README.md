@@ -33,7 +33,7 @@ All in `public/`, made from the NAFF logo and the design illustrations. Ask to r
 Set `SITE_URL` in production: share previews need absolute image URLs.
 
 ## Stack
-Next.js 15 (App Router, server components + server actions) · TypeScript · Tailwind CSS 4 · MongoDB + Mongoose · Zod · bcryptjs · Ably (admin live alerts) · nodemailer · Leaflet + OpenStreetMap · Vitest.
+Next.js 15 (App Router, server components + server actions) · TypeScript · Tailwind CSS 4 · MongoDB + Mongoose · Zod · bcryptjs · Ably (admin live alerts) · ntfy (driver job notifications) · nodemailer · Leaflet + OpenStreetMap · Vitest.
 
 ## Setup
 ```bash
@@ -51,8 +51,9 @@ All are listed with comments in [.env.example](.env.example).
 | Name | Purpose |
 |---|---|
 | `MONGODB_URI` | MongoDB Atlas connection string (free M0 is enough; allow `0.0.0.0/0` for Vercel) |
-| `SITE_URL`, `PANEL_URL` | Public URLs used in tracking links and alert emails |
+| `SITE_URL`, `PANEL_URL`, `DRIVER_URL` | Public URLs used in tracking links, alert emails, driver notifications and WhatsApp job details |
 | `ABLY_API_KEY` | Live admin alerts. Empty = live alerts off |
+| `NTFY_URL`, `NTFY_TOKEN` | Driver job notifications. Default server `https://ntfy.sh`; leave the token empty on the free tier, set it after buying a plan |
 | `FALLBACK_TO_REFRESH`, `REFRESH_SECONDS` | Only without Ably: `true` makes the panel reload its data every N seconds |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_NAME` | Customer PIN reset and new-request emails. Empty = email off |
 | `LOGIN_MAX_FAILS`, `LOGIN_WINDOW_MINUTES` | Failed logins per phone before blocking |
@@ -66,7 +67,7 @@ All are listed with comments in [.env.example](.env.example).
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run typecheck` | TypeScript check (also fails if an English text is missing) |
-| `npm test` | Business rules, order flows and auth against an in-memory MongoDB (49 tests) |
+| `npm test` | Business rules, order flows and auth against an in-memory MongoDB (58 tests) |
 | `npm run create-super-admin` | Creates the one super admin |
 | `npm run reset-super-admin-pin` | New PIN for the super admin, ends their sessions |
 | `npm run seed-demo` | Optional starter cities and agency on an empty database |
@@ -76,6 +77,15 @@ Pages load data on the server and forms call server actions, so there is no JSON
 - `DEBUG_LOG=true`: every action and page load prints `[action] name {input} → {result} (ms)` / `[load] …` in the terminal. PINs and codes are masked.
 - In development the browser console prints each action result (`[action] name → …`).
 - Actions still appear in the browser Network tab as POST requests to the page.
+
+## Driver notifications (ntfy)
+Each driver has a secret, random ntfy channel. On the driver's page in the panel you'll find the setup steps (install the ntfy app, tap +, paste the name), a Copy button and **Send a test**. The server posts one message per event (new job, job taken off them, cancelled, price changed, go and collect at the agency, code unlocked) in the order's language; tapping it opens the job in the driver app.
+- Channels on ntfy.sh can be read by anyone who knows the name, so messages carry no phone number, address, amount or code.
+- "Log out everywhere" and suspension give the driver a new channel (lost phone).
+- Free tier: about 250 messages a day counted per sending IP. Our volume is roughly 1–3 per order. If ntfy refuses a message, the action still goes through and the error is logged; customers can still reach the office with the "Let NAFF know on WhatsApp" button. To lift the limit, buy a plan on ntfy.sh and set `NTFY_TOKEN`.
+
+## WhatsApp messages
+Only for sensitive or mission-critical steps (SPEC §9.3), always prefilled, never sent automatically, written in the order's language: job details to the assigned driver, delivery code to the receiver (at the sender's request, logged), price and tracking link, the driver's parcel photo to the office, the customer's "Let NAFF know" and "Share on WhatsApp".
 
 ## Live alerts (Ably)
 The server publishes every order event on the channel `admin-alerts` with the Ably REST SDK. The panel gets a short-lived, subscribe-only token from `/api/ably-token` (admin session required) and listens through Ably's Server-Sent Events endpoint with the browser's `EventSource`, so no Ably library is shipped to the browser. Every event plays the same beep, shows a toast and increments the badge (no history). Browsers only allow sound after one click on the page.

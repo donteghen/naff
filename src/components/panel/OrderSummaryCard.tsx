@@ -17,6 +17,7 @@ export async function OrderSummaryCard({ order, compact = false }: { order: Admi
         <Chip tone={order.fee.status === "paid" ? "green" : "amber"}>● {order.fee.status === "paid" ? t("common.paid") : t("common.notPaid")}</Chip>
         <Chip tone={order.issue.open ? "red" : "grey"}>⚑ {order.issue.open ? order.issue.note || t("exit.issueOpen") : t("exit.noIssue")}</Chip>
         <Chip tone="grey">{order.source === "admin" ? t("order.sourceAdmin") : order.registered ? t("order.sourceUser") : t("order.sourceGuest")}</Chip>
+        <Chip tone="navy" className="uppercase">{t("order.languageTag", { language: order.language.toUpperCase() })}</Chip>
       </div>
       <p className="text-[15px] font-bold">{summary}</p>
       {order.needsReceiverConfirmation && <p className="w-fit rounded-xl bg-amber-soft px-3 py-1.5 text-sm font-extrabold">{t("approve.confirmFirst")}{order.receiverConfirmed ? " ✓" : ""}</p>}

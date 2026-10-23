@@ -108,7 +108,7 @@
 // Each test: [app, title, steps[], expected, needs?]
 const PARTS = [
   { title: "0. Setup", sub: "Once, before everything else", tests: [
-    ["CLI", "Install and checks", ["npm install", "cp .env.example .env.local → set MONGODB_URI (+ ABLY_API_KEY and SMTP_* if you have them)", "npm run typecheck && npm test"], "Typecheck clean and 49 tests passing."],
+    ["CLI", "Install and checks", ["npm install", "cp .env.example .env.local → set MONGODB_URI (+ ABLY_API_KEY and SMTP_* if you have them)", "npm run typecheck && npm test"], "Typecheck clean and 58 tests passing."],
     ["CLI", "Starter data and super admin", ["npm run seed-demo", "npm run create-super-admin → Aïcha, 690 00 00 00, PIN 123456", "npm run dev"], "Douala, Buea, Yaoundé and the agency Express Voyages exist. The super admin is created. The three addresses open (customer site, driver login, panel login)."],
   ]},
   { title: "1. Panel sign-in and admins", sub: "SPEC §4.1, §4.4", tests: [
@@ -129,9 +129,10 @@ const PARTS = [
   ]},
   { title: "3. Drivers", sub: "SPEC §4.3, §8", tests: [
     ["PANEL", "Create three drivers", ["Drivers → Add driver: Eric (Douala), Samuel (Douala), Brice (Buea)"], "A 4-digit temporary PIN for each, shown once. Cards show city and \"Offline\"."],
+    ["DRIVER", "Job notifications set up", ["Install the ntfy app on each driver's phone", "Panel → Drivers → Eric → Job notifications: tap \"+\" in ntfy, paste the name, then Send a test"], "The test arrives on Eric's phone within seconds (\"NAFF · Test\", in the panel's language), even with the ntfy app closed. Do the same for Samuel and Brice."],
     ["DRIVER", "First login", ["Phone → driver app → Eric's phone + temporary PIN"], "\"Choose your PIN\" first, then \"Hi Eric\" with empty job lists."],
     ["DRIVER", "Availability", ["Tap Available, reload; repeat for Samuel and Brice"], "The choice is kept. The panel driver list shows \"Available\"."],
-    ["PANEL", "Reset PIN and log out everywhere", ["Drivers → Brice → Reset PIN, then Log out everywhere"], "New temporary PIN shown once; Brice's next tap shows the login page. Log Brice in again and set a PIN."],
+    ["PANEL", "Reset PIN and log out everywhere", ["Drivers → Brice → Reset PIN, then Log out everywhere"], "New temporary PIN shown once; Brice's next tap shows the login page, and the notification name on his page has changed (the old one gets nothing). Log Brice in again, set a PIN and subscribe to the new name."],
   ]},
   { title: "4. Customer account", sub: "SPEC §4.2", tests: [
     ["SITE", "Discount banner and register", ["Logged out, open /home → \"Create an account: 5% off\" → Create account as Marie (phone, your email, PIN 1234 twice)"], "Logged in straight away; /home says \"Good …, Marie\". Registering the same phone again: \"This number is already used\"."],
@@ -157,11 +158,13 @@ const PARTS = [
     ["PANEL", "C needs the payment", ["Open C, enter a price"], "Approve stays disabled until \"Payment received (Orange Money)\" is ticked. After approval C shows Paid."],
     ["PANEL", "D and E need the agency fee", ["Open D, then E"], "\"Agency fee\" (admin only) is required (0 allowed). Approve D with 6000 / 1500, E with 5000 / 1200."],
     ["PANEL", "Send price on WhatsApp", ["On A click \"Send price\""], "WhatsApp (Web or app per your setting) opens a chat with Marie and a prefilled price message."],
-    ["PANEL", "Quick order (phone caller)", ["Quick order → fill every block from scratch → tick \"Price already agreed: approve now\" → 3000 → Create and approve"], "Opens the new order: Approved, source \"Admin-entered\", no discount, not linked to any account."],
+    ["PANEL", "Quick order (phone caller)", ["Quick order → leave \"Caller's language\" empty → Create", "Choose English → fill every block from scratch → tick \"Price already agreed: approve now\" → 3000 → Create and approve"], "Without a language: \"Required\". Then the new order opens: Approved, source \"Admin-entered\", tag \"Language · EN\", no discount, not linked to any account."],
   ]},
   { title: "7. Local delivery · order A", sub: "SPEC §6.3–6.5", tests: [
     ["PANEL", "Assign", ["A → Drivers → list"], "Only Douala drivers, with Available / On job / Offline and current jobs. Assign Eric → \"Awaiting driver\"."],
     ["DRIVER", "Decline and reassign", ["Eric → Awaiting my confirmation → A → Decline", "Panel: assign Eric again"], "A goes back to Approved, alert in the panel, activity \"Driver declined\"."],
+    ["DRIVER", "New job notification", ["Panel: assign A to Eric (Eric's phone locked, ntfy app closed)", "Tap the notification"], "Eric's phone shows \"Nouvelle course NF-…\" (A was sent in French) with the areas only: no phone, address or amount. Tapping opens A in the driver app."],
+    ["PANEL", "Send job details on WhatsApp", ["A → Drivers → next to Eric: Send job details"], "WhatsApp opens a chat with Eric, prefilled in the order's language: route, parcel, pickup time, pickup address (+ map link if pinned), sender, receiver, money to collect, link to the job. No delivery code. The button only appears next to an assigned driver."],
     ["DRIVER", "Confirm → tracking starts", ["Eric → A → Confirm job"], "Driver confirmed. Marie's order page now shows the 4-digit code and the tracking link with copy buttons. Panel: tracking WhatsApp buttons appear."],
     ["DRIVER", "Pickup", ["Eric → A → Picked up"], "No pickup money card (fee is paid on delivery). Status Picked up."],
     ["DRIVER", "Delivery money card", ["Eric → A"], "Amber card \"Collect from receiver 17,375 XAF — 15,000 goods + 2,375 delivery fee\" and 4 code boxes."],
@@ -194,6 +197,8 @@ const PARTS = [
   { title: "11. Tracking and guest pages", sub: "SPEC §6.5, §6.6", tests: [
     ["SITE", "Active tracking", ["Open the tracking link of an order in progress"], "Night-road scene with lanterns lit to the current step, title, \"Not live: refresh…\" + Refresh, Paid / Not paid (no amount), steps with times. No phone, full address, price or code (check the page source too)."],
     ["SITE", "Finished and unknown", ["Open the link of A (delivered), of a cancelled order, and /t/ABCDEFGHJKMN"], "Delivered/cancelled: only \"Tracking expired, this delivery is complete\". Unknown: \"We cannot find this parcel\". Both with Call us."],
+    ["SITE", "Let NAFF know on WhatsApp", ["Send a new request as a guest (with the office WhatsApp number set in Settings → Contacts)", "On \"We'll call you\", tap \"Let NAFF know on WhatsApp\""], "WhatsApp opens a chat with the office: \"I've just sent request NF-… (route). Please call me back on …\", in the language used on the site. Hidden when no office WhatsApp number is set."],
+    ["SITE", "Share on WhatsApp", ["Once tracking has started, on the order page tap \"Share on WhatsApp\""], "WhatsApp opens so you can pick a contact; the message has the tracking link, and the delivery code when it's shown on the page."],
     ["SITE", "Guest code shown once", ["Use B: after the driver confirmed, open the /o/… page, then reload it"], "First load: code + \"Copy the code now. You will not see it again.\" After reload: \"The code was already shown once…\". The tracking link stays."],
     ["SITE", "Logged-in code", ["Marie → My orders → D during delivery → reload several times"], "The code shows every time until delivery ends."],
     ["SITE", "My orders", ["Marie → My orders → All / Active / Done"], "Correct lists; delivered orders open with the Delivered card and full journey."],
@@ -216,7 +221,7 @@ const PARTS = [
     ["SITE", "Site on phone and tablet", ["Home, form, order and tracking at 390px and 820px"], "Centred app card on tablet; nothing overflows."],
     ["SITE", "Not found pages", ["Unknown path on each of the 3 addresses"], "Each app shows its own \"Page not found\"."],
     ["SITE", "French / English", ["Switch EN | FR on each app"], "No raw keys (like \"order.something\") anywhere. French is the default for a new visitor."],
-    ["CLI", "Final checks", ["npm run typecheck && npm test && npm run build"], "All succeed (49 tests)."],
+    ["CLI", "Final checks", ["npm run typecheck && npm test && npm run build"], "All succeed (58 tests)."],
     ["CLI", "Deploy", ["Vercel: add your domain, driver.<domain> and panel.<domain> to the same project; set the env variables; run create-super-admin against production"], "Each subdomain opens its own app with its own login."],
   ]},
   { title: "15. Landing page, sharing and brand assets", sub: "SPEC §7 (landing), README Brand assets", tests: [
@@ -229,6 +234,17 @@ const PARTS = [
     ["SITE", "Share preview", ["Deploy (or use a tunnel), paste the site link in WhatsApp, or check it on opengraph.xyz"], "Preview card with the NAFF image, title \"NAFF · Livraisons partout au Cameroun\" and the description (English for visitors who chose EN)."],
     ["SITE", "Icons and install", ["Look at the browser tab; on Android choose \"Add to home screen\" on the site, the driver app and the panel"], "NAFF icon in the tab. Each app installs with its own name (NAFF, NAFF Driver, NAFF Panel) and the amber N icon, and opens on its own host."],
     ["SITE", "Not indexed", ["View the source of a tracking page, the driver app and the panel"], "They contain <meta name=\"robots\" content=\"noindex, nofollow\">; the landing page does not."],
+  ]},
+  { title: "16. Notifications, order language and WhatsApp messages", sub: "SPEC §6.2b, §9.2, §9.3", tests: [
+    ["PANEL", "Language tag and correction", ["Open an order made on the site in English", "Edit details → Order language: French → Save"], "Tag \"Language · EN\", then \"Language · FR\" after saving; the activity shows the change. From then on every message about the order is in French."],
+    ["DRIVER", "Job taken off a driver", ["Give A's job to Samuel instead of Eric (or Remove)"], "Eric gets \"Job taken off you / don't go\"; Samuel gets \"New job\"."],
+    ["DRIVER", "Cancelled and price changed", ["Edit the price of an assigned order, then cancel it"], "The assigned driver gets \"Price changed\" then \"cancelled, don't go\"."],
+    ["DRIVER", "Go and collect", ["Intercity to the address: Arrived at agency B"], "The second driver gets \"Parcel arrived · NF-…: the parcel is at the agency in <town>\". Tapping opens the job."],
+    ["DRIVER", "Code unlocked", ["Lock a delivery code with 3 wrong tries, then Unlock code in the panel"], "The final driver gets \"Code unlocked\"."],
+    ["DRIVER", "Send the photo to the office", ["Intercity: on the drop form, and on the destination \"collect\" screen, tap \"Send the photo to the office\""], "WhatsApp opens a chat with the office number with \"NF-… · photo of the parcel…\" prefilled; attach the photo. Hidden when no office WhatsApp number is set."],
+    ["PANEL", "Delivery code to the receiver", ["Order in progress → \"Code to receiver\" → \"The sender asked · Send\""], "First tap only asks for confirmation. Second tap opens WhatsApp to the receiver with the code and tracking link, in the order's language. Activity: \"Code sent to the receiver\". The button disappears once the order is finished."],
+    ["PANEL", "Messages follow the order's language", ["With the panel in English, send the price / tracking link of a French order"], "Buttons are in English (your panel language); the prefilled messages are in French."],
+    ["CLI", "ntfy refuses a message", ["Set NTFY_URL to a wrong address, restart, assign a driver"], "The assignment works normally; the terminal logs \"[ntfy] publish failed\". Put NTFY_URL back."],
   ]},
 ];
 
