@@ -6,12 +6,14 @@ import { Card, Chip, EmptyState, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatDate } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listUsers } from "@/server/services/people";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
+  await requireAdminPage();
   const { t, language } = await getTranslator();
   const params = await searchParams;
   const result = await load("panel.users", params, () => listUsers({ q: params.q, page: Number(params.page) || 1 }));

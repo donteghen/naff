@@ -3,12 +3,14 @@ import { InTransitActions } from "@/components/panel/InTransitActions";
 import { Card, EmptyState, PageTitle, StatusChip } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatDayAndTime } from "@/lib/dates";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listInTransit } from "@/server/services/order-queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function InTransitPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+  await requireAdminPage();
   const { t, tx, language } = await getTranslator();
   const { filter } = await searchParams;
   const etaOnly = filter === "eta";

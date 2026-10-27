@@ -4,6 +4,7 @@
 - This project is self-contained. Nothing goes in the parent `mvp/` folder: no shared files, no git there.
 - The designs in `docs/design/` are for look and feel only. Never copy logic from them.
 - Three apps, one codebase: customer site, driver app, admin panel, separated by host in `src/middleware.ts`. Each app only uses its own session cookie and its own server actions.
+- Every page that shows private data checks the session itself (`require…Page`). A check in a layout is not enough: Next.js does not re-run layouts when moving between pages.
 - Business rules belong in `src/server/services/*`. Pages and actions only validate input (Zod), check the session and call services.
 - Every order change goes through the order service, which writes the activity log. Every admin-side change outside orders writes the audit log. Nothing is hard-deleted.
 - All interface text goes in `src/i18n/fr.ts` and `src/i18n/en.ts`. French is the default, and TypeScript fails if a key is missing in English.

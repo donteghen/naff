@@ -5,6 +5,7 @@ import { getTranslator } from "@/i18n/server";
 import { formatDuration } from "@/lib/dates";
 import { formatAmount, formatXAF } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { getReports, type Granularity } from "@/server/services/reports";
 
@@ -42,6 +43,7 @@ function Table({ rows, empty, columns }: { rows: (string | number)[][]; empty: s
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ by?: string }> }) {
+  await requireAdminPage();
   const { t, language } = await getTranslator();
   const { by } = await searchParams;
   const granularity: Granularity = GRANULARITIES.includes(by as Granularity) ? (by as Granularity) : "week";

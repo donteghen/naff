@@ -17,6 +17,7 @@ import { formatXAF } from "@/lib/money";
 import { formatPhone } from "@/lib/phone";
 import { codeForReceiverMessage, jobDetailsMessage, priceMessage, trackingMessageForReceiver, trackingMessageForSender } from "@/lib/whatsapp";
 import { SendCodeButton } from "@/components/panel/order/SendCodeButton";
+import { requireAdminPage } from "@/server/auth/current";
 import { config } from "@/server/config";
 import { load } from "@/server/debug";
 import { getAdminOrder } from "@/server/services/order-queries";
@@ -25,6 +26,7 @@ import { getSettings, mobileMoneyText } from "@/server/services/settings";
 export const dynamic = "force-dynamic";
 
 export default async function PanelOrderPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const { t, tx } = await getTranslator();
   const data = await load("panel.order", { id }, () => getAdminOrder(id));

@@ -4,6 +4,7 @@ import { Card, PageTitle, SectionLabel, StatCard, buttonClass, inputClass } from
 import { getTranslator } from "@/i18n/server";
 import { addDays, dayKey } from "@/lib/dates";
 import { formatXAF } from "@/lib/money";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { getDashboard } from "@/server/services/dashboard";
 
@@ -15,6 +16,7 @@ function validDay(value: string | undefined, fallback: string) {
 
 /** State of affairs for a chosen date range. No comparisons: those are on the Reports page. */
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  await requireAdminPage();
   const { t, tx } = await getTranslator();
   const params = await searchParams;
   const today = dayKey();

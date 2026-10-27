@@ -4,6 +4,7 @@ import { OrderRow } from "@/components/panel/OrderRow";
 import { OrderSummaryCard } from "@/components/panel/OrderSummaryCard";
 import { ButtonLink, Card, EmptyState, PageTitle } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listQueue, type QueueFilter } from "@/server/services/order-queries";
 import { getSettings } from "@/server/services/settings";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 const FILTERS: QueueFilter[] = ["all", "requested", "active", "issues"];
 
 export default async function QueuePage({ searchParams }: { searchParams: Promise<{ filter?: string; id?: string }> }) {
+  await requireAdminPage();
   const { t } = await getTranslator();
   const params = await searchParams;
   const filter = (FILTERS.includes(params.filter as QueueFilter) ? params.filter : "all") as QueueFilter;

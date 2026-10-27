@@ -4,6 +4,7 @@ import { IconChevron } from "@/components/Icons";
 import { Avatar, Card, Chip, EmptyState, PageTitle } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatPhone } from "@/lib/phone";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listDriversWithJobs } from "@/server/services/order-queries";
 import { listActiveCities } from "@/server/services/places";
@@ -11,6 +12,7 @@ import { listActiveCities } from "@/server/services/places";
 export const dynamic = "force-dynamic";
 
 export default async function DriversPage({ searchParams }: { searchParams: Promise<{ city?: string }> }) {
+  await requireAdminPage();
   const { t } = await getTranslator();
   const { city } = await searchParams;
   const cities = await listActiveCities();

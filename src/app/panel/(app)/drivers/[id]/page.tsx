@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DriverManage } from "@/components/panel/DriverManage";
 import { DriverNotifications } from "@/components/panel/DriverNotifications";
+import { requireAdminPage } from "@/server/auth/current";
 import { config } from "@/server/config";
 import { OrderRow } from "@/components/panel/OrderRow";
 import { IconBack } from "@/components/Icons";
@@ -18,6 +19,7 @@ import { listAllCities } from "@/server/services/setup";
 export const dynamic = "force-dynamic";
 
 export default async function DriverPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const { t, language } = await getTranslator();
   const driver = await getDriver(id);

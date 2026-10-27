@@ -3,6 +3,7 @@ import { Pagination } from "@/components/panel/Pagination";
 import { Card, EmptyState, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatDateTime } from "@/lib/dates";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listAudit } from "@/server/services/log-queries";
 
@@ -30,6 +31,7 @@ function auditDetails(details: Record<string, unknown>): string {
 }
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<Params> }) {
+  await requireAdminPage();
   const { t, tx, language } = await getTranslator();
   const params = await searchParams;
   const result = await load("panel.audit", params, () => listAudit({ ...params, page: Number(params.page) || 1 }));

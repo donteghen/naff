@@ -117,7 +117,7 @@ const PARTS = [
     ["PANEL", "Create the second admin", ["Settings → Admins → Add admin: Joël, 690 00 00 01, your email → Create admin"], "A 6-digit temporary PIN is shown once. Audit log: \"Admin created\"."],
     ["PANEL", "First login forces a new PIN", ["Private window → log in as Joël with the temporary PIN"], "\"Choose your PIN\" comes first; nothing else opens until a new 6-digit PIN is saved."],
     ["PANEL", "Admins tab is super-admin only", ["As Joël: Settings, then open /settings?tab=admins"], "No Admins tab; the URL shows the Cities tab instead."],
-    ["PANEL", "Change my PIN", ["As Joël: Settings → My account → wrong current PIN, then the right one"], "\"Current PIN is wrong\", then \"PIN changed\". Joël's other devices are signed out."],
+    ["PANEL", "Change my PIN", ["Log in as Joël in two browsers (e.g. a normal and a private window)", "In one: Settings → My account → wrong current PIN, then the right one", "In the other: tap any sidebar link, then try any save button"], "\"Current PIN is wrong\", then \"PIN changed\". The other browser is sent to the login page (\"session ended\") on its next tap and can neither see nor change anything."],
     ["PANEL", "Reset and deactivate an admin", ["As Aïcha: Admins → Joël → Edit → Reset PIN (tap twice)", "Then Deactivate, then Reactivate"], "New temporary PIN shown once; Joël's next click shows \"Session ended\". Deactivated: Joël can't log in. The super admin row has no Edit."],
   ]},
   { title: "2. Settings", sub: "SPEC §5, §9, §10", tests: [

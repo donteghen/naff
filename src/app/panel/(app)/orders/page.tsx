@@ -4,6 +4,7 @@ import { Pagination } from "@/components/panel/Pagination";
 import { Card, EmptyState, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { ORDER_STATUSES } from "@/lib/constants";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { searchOrders } from "@/server/services/order-queries";
 import { listActiveCities } from "@/server/services/places";
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 type Params = { q?: string; status?: string; type?: string; cityId?: string; source?: string; from?: string; to?: string; issue?: string; page?: string };
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<Params> }) {
+  await requireAdminPage();
   const { t, tx } = await getTranslator();
   const params = await searchParams;
   const result = await load("panel.orders", params, () => searchOrders({ ...params, issue: params.issue === "1", page: Number(params.page) || 1 }));

@@ -7,6 +7,7 @@ import { Card, Chip, EmptyState, PageTitle, SectionLabel } from "@/components/ui
 import { getTranslator } from "@/i18n/server";
 import { formatDateTime } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { searchOrders } from "@/server/services/order-queries";
 import { getUser } from "@/server/services/people";
@@ -14,6 +15,7 @@ import { getUser } from "@/server/services/people";
 export const dynamic = "force-dynamic";
 
 export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminPage();
   const { id } = await params;
   const { t, language } = await getTranslator();
   const user = await getUser(id);

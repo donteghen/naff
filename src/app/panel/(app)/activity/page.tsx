@@ -6,6 +6,7 @@ import { Card, EmptyState, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { ACTOR_TYPES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/dates";
+import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
 import { listActivity } from "@/server/services/log-queries";
 
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 type Params = { from?: string; to?: string; actorType?: string; actor?: string; action?: string; order?: string; page?: string };
 
 export default async function ActivityPage({ searchParams }: { searchParams: Promise<Params> }) {
+  await requireAdminPage();
   const { t, tx, language } = await getTranslator();
   const params = await searchParams;
   const result = await load("panel.activity", params, () => listActivity({ ...params, page: Number(params.page) || 1 }));
