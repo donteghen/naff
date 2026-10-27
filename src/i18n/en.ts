@@ -17,6 +17,7 @@ export const en: Record<keyof typeof fr, string> = {
   "common.from": "From",
   "common.to": "To",
   "common.home": "Home",
+  "common.loading": "Loading…",
   "common.next": "Next",
   "common.previous": "Previous",
   "common.no": "No",

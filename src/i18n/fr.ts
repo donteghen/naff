@@ -15,6 +15,7 @@ export const fr = {
   "common.from": "Du",
   "common.to": "Au",
   "common.home": "Accueil",
+  "common.loading": "Chargement…",
   "common.next": "Suivant",
   "common.previous": "Précédent",
   "common.no": "Non",
