@@ -208,6 +208,7 @@ export const fr = {
   "site.callUs": "Appelez-nous",
   "site.heroTitle": "Envoyez partout au Cameroun",
   "site.newDelivery": "Nouvelle livraison",
+  "site.sendShort": "Envoyer",
   "site.activeDelivery": "Livraison en cours",
   "site.recent": "Récentes",
   "site.allOrders": "Tout voir",

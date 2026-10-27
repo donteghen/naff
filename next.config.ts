@@ -9,7 +9,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["mongoose", "bcryptjs", "nodemailer", "ably"],
+  serverExternalPackages: ["mongoose", "bcryptjs", "nodemailer", "ably"],  
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev'],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

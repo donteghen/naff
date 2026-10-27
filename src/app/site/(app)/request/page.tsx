@@ -16,7 +16,7 @@ export default async function RequestPage() {
   const cities = await listActiveCities();
   return (
     <>
-      <SiteHeader />
+      <SiteHeader showSend={false} />
       <RequestWizard
         cities={cities}
         defaults={{ senderName: user?.name ?? "", senderPhone: user ? formatPhone(user.phone) : "", originCityId: cities.length === 1 ? cities[0].id : "" }}

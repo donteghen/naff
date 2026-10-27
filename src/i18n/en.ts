@@ -210,6 +210,7 @@ export const en: Record<keyof typeof fr, string> = {
   "site.callUs": "Call us",
   "site.heroTitle": "Send anything, anywhere in Cameroon",
   "site.newDelivery": "New delivery",
+  "site.sendShort": "Send",
   "site.activeDelivery": "Delivery in progress",
   "site.recent": "Recent",
   "site.allOrders": "See all",
