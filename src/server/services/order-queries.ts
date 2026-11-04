@@ -134,11 +134,27 @@ export type DriverOption = {
 };
 
 /** Drivers with their city, availability and unfinished jobs (assignment screen, drivers page). */
-export async function listDriversWithJobs(options: { cityIds?: string[]; includeInactive?: boolean } = {}): Promise<DriverOption[]> {
+export type DriverState = "available" | "on_job" | "offline" | "suspended";
+
+/** One state per driver, as shown in lists: suspended first, then on a job, then available or offline. */
+export function driverState(driver: { active: boolean; available: boolean; currentJobs: unknown[] }): DriverState {
+  if (!driver.active) return "suspended";
+  if (driver.currentJobs.length > 0) return "on_job";
+  return driver.available ? "available" : "offline";
+}
+
+export async function listDriversWithJobs(
+  options: { cityIds?: string[]; includeInactive?: boolean; q?: string; state?: string } = {},
+): Promise<DriverOption[]> {
   await connectDb();
   const query: Record<string, unknown> = {};
   if (!options.includeInactive) query.active = true;
   if (options.cityIds) query.cityId = { $in: options.cityIds };
+  const q = options.q?.trim();
+  if (q) {
+    const phone = normalizePhone(q);
+    query.$or = phone ? [{ name: { $regex: escapeRegex(q), $options: "i" } }, { phone }] : [{ name: { $regex: escapeRegex(q), $options: "i" } }];
+  }
   const drivers = await Driver.find(query).sort({ name: 1 }).lean();
   const cities = await City.find().lean();
   const cityName = Object.fromEntries(cities.map((city) => [String(city._id), city.name]));
@@ -150,7 +166,7 @@ export async function listDriversWithJobs(options: { cityIds?: string[]; include
     .select("number type originDriverId destinationDriverId pickup dropoff status")
     .lean();
 
-  return drivers.map((driver) => {
+  const list = drivers.map((driver) => {
     const id = String(driver._id);
     // The origin driver of an intercity order is done once the parcel is at the agency.
     const mine = jobs.filter(
@@ -169,6 +185,8 @@ export async function listDriversWithJobs(options: { cityIds?: string[]; include
       currentJobs: mine.map((job) => ({ id: String(job._id), number: job.number, route: `${shortPlace(job.pickup.text)} → ${shortPlace(job.dropoff.text)}` })),
     };
   });
+  if (!options.state) return list;
+  return list.filter((driver) => driverState(driver) === options.state);
 }
 
 function shortPlace(text: string) {

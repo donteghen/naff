@@ -1,7 +1,7 @@
 import { FilterField, FilterForm } from "@/components/panel/FilterForm";
-import { OrderRow } from "@/components/panel/OrderRow";
+import { OrdersTable } from "@/components/panel/OrdersTable";
 import { Pagination } from "@/components/panel/Pagination";
-import { Card, EmptyState, PageTitle, inputClass } from "@/components/ui";
+import { Card, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { ORDER_STATUSES } from "@/lib/constants";
 import { requireAdminPage } from "@/server/auth/current";
@@ -61,7 +61,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         </label>
       </FilterForm>
       <Card className="overflow-hidden p-0">
-        {result.orders.length === 0 ? <EmptyState>{t("orders.none")}</EmptyState> : result.orders.map((order) => <OrderRow key={order.id} order={order} href={`/orders/${order.id}`} />)}
+        <OrdersTable orders={result.orders} />
         <Pagination page={result.page} pages={result.pages} total={result.total} params={filters} basePath="/orders" />
       </Card>
     </>

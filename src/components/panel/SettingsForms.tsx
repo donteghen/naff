@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   createAdminAction,
@@ -15,10 +16,13 @@ import {
 import { useT } from "@/i18n/client";
 import { formatPhone } from "@/lib/phone";
 import { useWhatsAppMode } from "./order/WhatsAppButtons";
+import { IconPlus } from "../Icons";
+import { Modal } from "../Modal";
 import { useAction } from "../use-action";
 import { Button, Chip, Field, Notice, inputClass } from "../ui";
 import { AccountActions } from "./AccountActions";
 import { PersonForm } from "./PersonForm";
+import { Cell, Row, RowActions, Table } from "./Table";
 
 type City = { id: string; name: string; active: boolean; drivers: number };
 type Agency = { id: string; name: string; phone: string; active: boolean; branches: { cityId: string; address: string }[] };
@@ -30,30 +34,64 @@ function Feedback({ error, values, fields, saved }: { error: string | null; valu
   return null;
 }
 
+/** Intro on the left, the add button on the right, above a settings table. */
+function Toolbar({ intro, children }: { intro?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {intro ? <p className="text-sm text-muted">{intro}</p> : <span />}
+      <div className="flex justify-end">{children}</div>
+    </div>
+  );
+}
+
+function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return <Button size="md" variant="action" onClick={onClick}><IconPlus size={18} />{label}</Button>;
+}
+
+function CityModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t, tx } = useT();
+  const { run, pending, error, errorValues, fields } = useAction();
+  const [name, setName] = useState("");
+  return (
+    <Modal open={open} onClose={onClose} title={t("settings.addCity")}>
+      <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); run("addCity", () => saveCityAction({ name, active: true }), () => { setName(""); onClose(); }); }}>
+        <Field label={t("table.city")} error={fields.name ? tx(fields.name) : undefined}>
+          <input className={inputClass(Boolean(fields.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder={t("settings.newCity")} required autoFocus />
+        </Field>
+        <Feedback error={error} values={errorValues} fields={fields} saved={false} />
+        <Button type="submit" size="md" disabled={pending}>{pending ? t("common.wait") : t("common.add")}</Button>
+      </form>
+    </Modal>
+  );
+}
+
 export function CitiesForm({ cities }: { cities: City[] }) {
   const { t } = useT();
   const { run, pending, error, errorValues, fields } = useAction();
-  const [name, setName] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [adding, setAdding] = useState(false);
   return (
-    <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2">
-        {cities.map((city) => (
-          <li key={city.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-mist px-3 py-2">
-            <span className="flex-1 font-bold">{city.name}</span>
-            <span className="text-xs text-muted">{t("settings.cityDrivers", { count: city.drivers })}</span>
-            <Chip tone={city.active ? "green" : "grey"}>{city.active ? t("people.active") : t("people.inactive")}</Chip>
-            <Button size="sm" variant="secondary" disabled={pending} onClick={() => run("saveCity", () => saveCityAction({ id: city.id, name: city.name, active: !city.active }))}>
-              {city.active ? t("settings.switchOff") : t("settings.switchOn")}
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); setSaved(false); run("addCity", () => saveCityAction({ name, active: true }), () => { setName(""); setSaved(true); }); }}>
-        <input className={inputClass(Boolean(fields.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder={t("settings.newCity")} required />
-        <Button type="submit" size="md" disabled={pending}>{t("common.add")}</Button>
-      </form>
-      <Feedback error={error} values={errorValues} fields={fields} saved={saved} />
+    <div className="flex flex-col gap-4">
+      <Toolbar><AddButton label={t("settings.addCity")} onClick={() => setAdding(true)} /></Toolbar>
+      <Feedback error={error} values={errorValues} fields={fields} saved={false} />
+      <div className="overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_var(--color-line)]">
+        <Table columns={[{ label: t("table.city") }, { label: t("nav.drivers"), className: "text-right" }, { label: t("orders.status") }, { label: t("table.actions"), className: "text-right" }]}>
+          {cities.map((city) => (
+            <Row key={city.id}>
+              <Cell className="font-extrabold">{city.name}</Cell>
+              <Cell className="text-right tabular-nums">{city.drivers}</Cell>
+              <Cell><Chip tone={city.active ? "green" : "grey"}>{city.active ? t("people.active") : t("people.inactive")}</Chip></Cell>
+              <Cell>
+                <RowActions>
+                  <Button size="sm" variant="secondary" disabled={pending} onClick={() => run("saveCity", () => saveCityAction({ id: city.id, name: city.name, active: !city.active }))}>
+                    {city.active ? t("settings.switchOff") : t("settings.switchOn")}
+                  </Button>
+                </RowActions>
+              </Cell>
+            </Row>
+          ))}
+        </Table>
+      </div>
+      <CityModal open={adding} onClose={() => setAdding(false)} />
     </div>
   );
 }
@@ -68,7 +106,7 @@ function AgencyEditor({ agency, cities, onDone }: { agency: Agency | null; citie
   const toggleCity = (cityId: string) =>
     setBranches((current) => (current.some((branch) => branch.cityId === cityId) ? current.filter((branch) => branch.cityId !== cityId) : [...current, { cityId, address: "" }]));
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-mist p-3">
+    <div className="flex flex-col gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("settings.agencyName")}><input className={inputClass(Boolean(fields.name))} value={name} onChange={(event) => setName(event.target.value)} /></Field>
         <Field label={t("settings.agencyPhone")}><input className={inputClass(Boolean(fields.phone))} value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
@@ -98,9 +136,9 @@ function AgencyEditor({ agency, cities, onDone }: { agency: Agency | null; citie
         {t("people.active")}
       </label>
       <Feedback error={error} values={errorValues} fields={fields} saved={false} />
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button size="md" variant="secondary" onClick={onDone}>{t("common.cancel")}</Button>
-        <Button size="md" disabled={pending} onClick={() => run("saveAgency", () => saveAgencyAction({ id: agency?.id, name, phone, active, branches }), onDone)}>{t("common.save")}</Button>
+        <Button size="md" disabled={pending} onClick={() => run("saveAgency", () => saveAgencyAction({ id: agency?.id, name, phone, active, branches }), onDone)}>{pending ? t("common.wait") : t("common.save")}</Button>
       </div>
     </div>
   );
@@ -108,26 +146,44 @@ function AgencyEditor({ agency, cities, onDone }: { agency: Agency | null; citie
 
 export function AgenciesForm({ agencies, cities }: { agencies: Agency[]; cities: City[] }) {
   const { t } = useT();
+  // null: closed, "new": adding, otherwise the id of the agency being edited.
   const [editing, setEditing] = useState<string | null>(null);
   const cityName = (id: string) => cities.find((city) => city.id === id)?.name ?? "?";
+  const current = agencies.find((agency) => agency.id === editing) ?? null;
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted">{t("settings.agenciesIntro")}</p>
-      {agencies.map((agency) =>
-        editing === agency.id ? (
-          <AgencyEditor key={agency.id} agency={agency} cities={cities} onDone={() => setEditing(null)} />
-        ) : (
-          <div key={agency.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-mist px-3 py-2">
-            <div className="min-w-0 flex-1">
-              <p className="font-bold">{agency.name}</p>
-              <p className="text-xs text-muted">{agency.branches.map((branch) => `${cityName(branch.cityId)}${branch.address ? ` (${branch.address})` : ""}`).join(" · ")}</p>
-            </div>
-            <Chip tone={agency.active ? "green" : "grey"}>{agency.active ? t("people.active") : t("people.inactive")}</Chip>
-            <Button size="sm" variant="secondary" onClick={() => setEditing(agency.id)}>{t("common.edit")}</Button>
-          </div>
-        ),
-      )}
-      {editing === "new" ? <AgencyEditor agency={null} cities={cities} onDone={() => setEditing(null)} /> : <Button size="md" variant="secondary" onClick={() => setEditing("new")}>{t("settings.addAgency")}</Button>}
+    <div className="flex flex-col gap-4">
+      <Toolbar intro={t("settings.agenciesIntro")}><AddButton label={t("settings.addAgency")} onClick={() => setEditing("new")} /></Toolbar>
+      <div className="overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_var(--color-line)]">
+        <Table
+          columns={[
+            { label: t("table.agency") },
+            { label: t("auth.phone"), className: "hidden md:table-cell" },
+            { label: t("table.branches"), className: "hidden md:table-cell" },
+            { label: t("orders.status") },
+            { label: t("table.actions"), className: "text-right" },
+          ]}
+        >
+          {agencies.map((agency) => (
+            <Row key={agency.id}>
+              <Cell>
+                <p className="font-extrabold">{agency.name}</p>
+                <p className="text-xs text-muted md:hidden">{agency.branches.map((branch) => cityName(branch.cityId)).join(" · ")}</p>
+              </Cell>
+              <Cell className="hidden whitespace-nowrap tabular-nums md:table-cell">{agency.phone ? formatPhone(agency.phone) : "—"}</Cell>
+              <Cell className="hidden md:table-cell">
+                {agency.branches.map((branch) => (
+                  <p key={branch.cityId}><b>{cityName(branch.cityId)}</b>{branch.address ? <span className="text-muted"> · {branch.address}</span> : null}</p>
+                ))}
+              </Cell>
+              <Cell><Chip tone={agency.active ? "green" : "grey"}>{agency.active ? t("people.active") : t("people.inactive")}</Chip></Cell>
+              <Cell><RowActions><Button size="sm" variant="secondary" onClick={() => setEditing(agency.id)}>{t("common.edit")}</Button></RowActions></Cell>
+            </Row>
+          ))}
+        </Table>
+      </div>
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? t("settings.addAgency") : t("settings.editAgency")}>
+        <AgencyEditor key={editing ?? "closed"} agency={current} cities={cities} onDone={() => setEditing(null)} />
+      </Modal>
     </div>
   );
 }
@@ -218,32 +274,53 @@ type AdminRow = { id: string; name: string; phone: string; email: string; isSupe
 
 export function AdminsForm({ admins }: { admins: AdminRow[] }) {
   const { t } = useT();
+  const router = useRouter();
+  // null: closed, "new": adding, otherwise the id of the admin being edited.
   const [editing, setEditing] = useState<string | null>(null);
+  const current = admins.find((admin) => admin.id === editing) ?? null;
+  const close = () => { setEditing(null); router.refresh(); };
   return (
-    <div className="flex flex-col gap-3">
-      {admins.map((admin) => (
-        <div key={admin.id} className="flex flex-col gap-2 rounded-xl bg-mist p-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="font-bold">{admin.name}</p>
-              <p className="text-xs text-muted">{formatPhone(admin.phone)}{admin.email ? ` · ${admin.email}` : ""}</p>
-            </div>
-            {admin.isSuperAdmin && <Chip tone="navy">{t("panel.superAdmin")}</Chip>}
-            <Chip tone={admin.active ? "green" : "grey"}>{admin.active ? t("people.active") : t("people.inactive")}</Chip>
-            {!admin.isSuperAdmin && <Button size="sm" variant="secondary" onClick={() => setEditing(editing === admin.id ? null : admin.id)}>{editing === admin.id ? t("common.close") : t("common.edit")}</Button>}
-          </div>
-          {editing === admin.id && (
-            <div className="flex flex-col gap-3 border-t border-line pt-3">
-              <PersonForm initial={{ name: admin.name, phone: formatPhone(admin.phone), email: admin.email }} withEmail submitLabel={t("common.save")} submit={(values) => updateAdminAction(admin.id, { name: values.name, phone: values.phone, email: values.email ?? "" })} />
-              <AccountActions active={admin.active} resetPin={() => resetAdminPinAction(admin.id)} setActive={(active) => setAdminActiveAction(admin.id, active)} deactivateLabel={t("people.deactivate")} />
-            </div>
-          )}
-        </div>
-      ))}
-      <div className="rounded-xl bg-white p-3 shadow-[inset_0_0_0_2px_var(--color-field)]">
-        <p className="mb-3 font-extrabold">{t("admins.add")}</p>
-        <PersonForm key={admins.length} initial={{ name: "", phone: "", email: "" }} withEmail submitLabel={t("admins.create")} submit={(values) => createAdminAction({ name: values.name, phone: values.phone, email: values.email ?? "" })} />
+    <div className="flex flex-col gap-4">
+      <Toolbar><AddButton label={t("admins.add")} onClick={() => setEditing("new")} /></Toolbar>
+      <div className="overflow-hidden rounded-2xl shadow-[inset_0_0_0_1px_var(--color-line)]">
+        <Table
+          columns={[
+            { label: t("form.name") },
+            { label: t("auth.phone"), className: "hidden md:table-cell" },
+            { label: t("site.email"), className: "hidden lg:table-cell" },
+            { label: t("table.role"), className: "hidden sm:table-cell" },
+            { label: t("orders.status") },
+            { label: t("table.actions"), className: "text-right" },
+          ]}
+        >
+          {admins.map((admin) => (
+            <Row key={admin.id}>
+              <Cell>
+                <p className="font-extrabold">{admin.name}</p>
+                <p className="text-xs text-muted md:hidden">{formatPhone(admin.phone)}</p>
+              </Cell>
+              <Cell className="hidden whitespace-nowrap tabular-nums md:table-cell">{formatPhone(admin.phone)}</Cell>
+              <Cell className="hidden max-w-[220px] truncate lg:table-cell">{admin.email || "—"}</Cell>
+              <Cell className="hidden sm:table-cell">{admin.isSuperAdmin ? <Chip tone="navy">{t("panel.superAdmin")}</Chip> : t("table.admin")}</Cell>
+              <Cell><Chip tone={admin.active ? "green" : "grey"}>{admin.active ? t("people.active") : t("people.inactive")}</Chip></Cell>
+              <Cell>{!admin.isSuperAdmin && <RowActions><Button size="sm" variant="secondary" onClick={() => setEditing(admin.id)}>{t("common.edit")}</Button></RowActions>}</Cell>
+            </Row>
+          ))}
+        </Table>
       </div>
+      <Modal open={editing !== null} onClose={close} title={editing === "new" ? t("admins.add") : t("admins.edit")}>
+        {editing === "new" && (
+          <PersonForm initial={{ name: "", phone: "", email: "" }} withEmail submitLabel={t("admins.create")} submit={(values) => createAdminAction({ name: values.name, phone: values.phone, email: values.email ?? "" })} onDone={close} />
+        )}
+        {current && (
+          <div className="flex flex-col gap-5">
+            <PersonForm initial={{ name: current.name, phone: formatPhone(current.phone), email: current.email }} withEmail submitLabel={t("common.save")} submit={(values) => updateAdminAction(current.id, { name: values.name, phone: values.phone, email: values.email ?? "" })} onDone={close} />
+            <div className="flex flex-col gap-3 border-t border-line pt-4">
+              <AccountActions active={current.active} resetPin={() => resetAdminPinAction(current.id)} setActive={(active) => setAdminActiveAction(current.id, active)} deactivateLabel={t("people.deactivate")} />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

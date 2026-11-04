@@ -44,9 +44,11 @@ function validId(id: string) {
 // Users (customers)
 // ---------------------------------------------------------------------------
 
-export async function listUsers(search: { q?: string; page?: number }) {
+export async function listUsers(search: { q?: string; status?: string; page?: number }) {
   await connectDb();
   const query: Record<string, unknown> = {};
+  if (search.status === "active") query.active = true;
+  if (search.status === "inactive") query.active = false;
   const q = search.q?.trim();
   if (q) {
     const phone = normalizePhone(q);

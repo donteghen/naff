@@ -1,54 +1,84 @@
-import Link from "next/link";
-import { AddDriver } from "@/components/panel/DriverManage";
-import { IconChevron } from "@/components/Icons";
-import { Avatar, Card, Chip, EmptyState, PageTitle } from "@/components/ui";
+import { AddDriverButton } from "@/components/panel/DriverManage";
+import { FilterField, FilterForm } from "@/components/panel/FilterForm";
+import { Cell, Row, RowLink, Table } from "@/components/panel/Table";
+import { Avatar, Card, Chip, EmptyState, PageTitle, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatPhone } from "@/lib/phone";
 import { requireAdminPage } from "@/server/auth/current";
 import { load } from "@/server/debug";
-import { listDriversWithJobs } from "@/server/services/order-queries";
+import { driverState, listDriversWithJobs, type DriverState } from "@/server/services/order-queries";
 import { listActiveCities } from "@/server/services/places";
 
 export const dynamic = "force-dynamic";
 
-export default async function DriversPage({ searchParams }: { searchParams: Promise<{ city?: string }> }) {
+const STATES: DriverState[] = ["available", "on_job", "offline", "suspended"];
+const STATE_LABEL: Record<DriverState, string> = { available: "driver.available", on_job: "assign.onJob", offline: "driver.offline", suspended: "drivers.suspended" };
+const STATE_TONE = { available: "green", on_job: "amber", offline: "grey", suspended: "red" } as const;
+
+export default async function DriversPage({ searchParams }: { searchParams: Promise<{ q?: string; city?: string; state?: string }> }) {
   await requireAdminPage();
-  const { t } = await getTranslator();
-  const { city } = await searchParams;
+  const { t, tx } = await getTranslator();
+  const params = await searchParams;
   const cities = await listActiveCities();
-  const drivers = await load("panel.drivers", { city }, () => listDriversWithJobs({ includeInactive: true, cityIds: city ? [city] : undefined }));
+  const drivers = await load("panel.drivers", params, () =>
+    listDriversWithJobs({ includeInactive: true, cityIds: params.city ? [params.city] : undefined, q: params.q, state: params.state }),
+  );
   return (
     <>
-      <PageTitle title={t("nav.drivers")} subtitle={t("drivers.intro")} />
-      <div className="flex flex-wrap gap-2">
-        <Link href="/drivers" className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${!city ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{t("common.all")}</Link>
-        {cities.map((item) => (
-          <Link key={item.id} href={`/drivers?city=${item.id}`} className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${city === item.id ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{item.name}</Link>
-        ))}
-      </div>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="grid content-start gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          {drivers.length === 0 && <Card><EmptyState>{t("drivers.none")}</EmptyState></Card>}
-          {drivers.map((driver) => (
-            <Link key={driver.id} href={`/drivers/${driver.id}`} className="press flex items-center gap-3 rounded-[18px] bg-white p-4 shadow-[var(--shadow-card)]">
-              <Avatar name={driver.name} size={44} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-extrabold">{driver.name}</p>
-                <p className="truncate text-xs text-muted">{driver.cityName} · {formatPhone(driver.phone)}</p>
-                <p className="truncate text-xs text-muted">{driver.currentJobs.length > 0 ? driver.currentJobs.map((job) => `NF-${job.number} ${job.route}`).join(" · ") : t("assign.noJob")}</p>
-              </div>
-              <Chip tone={!driver.active ? "grey" : driver.currentJobs.length > 0 ? "amber" : driver.available ? "green" : "grey"}>
-                {!driver.active ? t("drivers.suspended") : driver.currentJobs.length > 0 ? t("assign.onJob") : driver.available ? t("driver.available") : t("driver.offline")}
-              </Chip>
-              <IconChevron className="text-faint" />
-            </Link>
-          ))}
-        </div>
-        <Card className="flex h-fit flex-col gap-3">
-          <h2 className="font-extrabold">{t("drivers.add")}</h2>
-          <AddDriver cities={cities} />
-        </Card>
-      </div>
+      <PageTitle title={t("nav.drivers")} subtitle={t("drivers.intro")} actions={<AddDriverButton cities={cities} />} />
+      <FilterForm resetHref="/drivers">
+        <FilterField label={t("common.search")}><input name="q" defaultValue={params.q} className={inputClass()} placeholder={t("drivers.searchHint")} /></FilterField>
+        <FilterField label={t("orders.city")}>
+          <select name="city" defaultValue={params.city ?? ""} className={inputClass()}>
+            <option value="">{t("common.all")}</option>
+            {cities.map((city) => <option key={city.id} value={city.id}>{city.name}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label={t("orders.status")}>
+          <select name="state" defaultValue={params.state ?? ""} className={inputClass()}>
+            <option value="">{t("common.all")}</option>
+            {STATES.map((state) => <option key={state} value={state}>{tx(STATE_LABEL[state])}</option>)}
+          </select>
+        </FilterField>
+      </FilterForm>
+      <Card className="overflow-hidden p-0">
+        {drivers.length === 0 ? (
+          <EmptyState>{t("drivers.none")}</EmptyState>
+        ) : (
+          <Table
+            columns={[
+              { label: t("form.name") },
+              { label: t("table.city"), className: "hidden md:table-cell" },
+              { label: t("auth.phone"), className: "hidden lg:table-cell" },
+              { label: t("table.currentJobs"), className: "hidden md:table-cell" },
+              { label: t("orders.status"), className: "text-right" },
+            ]}
+          >
+            {drivers.map((driver) => {
+              const state = driverState(driver);
+              return (
+                <Row key={driver.id}>
+                  <Cell>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={driver.name} size={36} />
+                      <div className="min-w-0">
+                        <RowLink href={`/drivers/${driver.id}`}>{driver.name}</RowLink>
+                        <p className="truncate text-xs text-muted lg:hidden">{formatPhone(driver.phone)}<span className="md:hidden"> · {driver.cityName}</span></p>
+                      </div>
+                    </div>
+                  </Cell>
+                  <Cell className="hidden md:table-cell">{driver.cityName}</Cell>
+                  <Cell className="hidden whitespace-nowrap tabular-nums lg:table-cell">{formatPhone(driver.phone)}</Cell>
+                  <Cell className="hidden max-w-[280px] md:table-cell">
+                    {driver.currentJobs.length === 0 ? <span className="text-faint">—</span> : driver.currentJobs.map((job) => <p key={job.id} className="truncate">#{job.number} · {job.route}</p>)}
+                  </Cell>
+                  <Cell className="text-right"><Chip tone={STATE_TONE[state]}>{tx(STATE_LABEL[state])}</Chip></Cell>
+                </Row>
+              );
+            })}
+          </Table>
+        )}
+      </Card>
     </>
   );
 }

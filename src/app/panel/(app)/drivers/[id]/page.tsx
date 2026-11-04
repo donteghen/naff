@@ -4,9 +4,9 @@ import { DriverManage } from "@/components/panel/DriverManage";
 import { DriverNotifications } from "@/components/panel/DriverNotifications";
 import { requireAdminPage } from "@/server/auth/current";
 import { config } from "@/server/config";
-import { OrderRow } from "@/components/panel/OrderRow";
+import { OrdersTable } from "@/components/panel/OrdersTable";
 import { IconBack } from "@/components/Icons";
-import { Card, Chip, EmptyState, PageTitle, SectionLabel, StatCard } from "@/components/ui";
+import { Card, Chip, PageTitle, SectionLabel, StatCard } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { dayKey, dayRange, formatDateTime, addDays } from "@/lib/dates";
 import { formatXAF } from "@/lib/money";
@@ -55,7 +55,7 @@ export default async function DriverPage({ params }: { params: Promise<{ id: str
       <DriverManage driver={{ id, name: driver.name, phone: formatPhone(driver.phone), cityId: driver.cityId, active: driver.active }} cities={cities.filter((city) => city.active || city.id === driver.cityId)} />
       <Card className="overflow-hidden p-0">
         <div className="p-4"><SectionLabel>{t("drivers.jobs", { count: orders.total })}</SectionLabel></div>
-        {orders.orders.length === 0 ? <EmptyState>{t("orders.none")}</EmptyState> : orders.orders.map((order) => <OrderRow key={order.id} order={order} href={`/orders/${order.id}`} />)}
+        <OrdersTable orders={orders.orders} />
       </Card>
     </>
   );

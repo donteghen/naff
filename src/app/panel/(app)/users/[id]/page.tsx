@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { OrderRow } from "@/components/panel/OrderRow";
+import { OrdersTable } from "@/components/panel/OrdersTable";
 import { UserManage } from "@/components/panel/UserManage";
 import { IconBack } from "@/components/Icons";
-import { Card, Chip, EmptyState, PageTitle, SectionLabel } from "@/components/ui";
+import { Card, Chip, PageTitle, SectionLabel } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatDateTime } from "@/lib/dates";
 import { formatPhone } from "@/lib/phone";
@@ -32,7 +32,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
       <UserManage user={{ id, name: user.name, phone: formatPhone(user.phone), email: user.email, active: user.active }} />
       <Card className="overflow-hidden p-0">
         <div className="p-4"><SectionLabel>{t("users.ordersTitle", { count: orders.total })}</SectionLabel></div>
-        {orders.orders.length === 0 ? <EmptyState>{t("orders.none")}</EmptyState> : orders.orders.map((order) => <OrderRow key={order.id} order={order} href={`/orders/${order.id}`} />)}
+        <OrdersTable orders={orders.orders} />
       </Card>
     </>
   );
