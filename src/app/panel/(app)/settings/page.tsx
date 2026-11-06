@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { setAdminPinAction } from "@/actions/panel-admin";
 import { SetPinForm } from "@/components/auth/SetPinForm";
+import { PendingLink } from "@/components/panel/Pending";
 import { AdminsForm, AgenciesForm, CitiesForm, ContactsForm, PricingForm, StatusForm, WhatsAppPreference } from "@/components/panel/SettingsForms";
 import { Card, PageTitle, SectionLabel } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
@@ -64,9 +64,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <PageTitle title={t("nav.settings")} />
       <div className="flex flex-wrap gap-2">
         {tabs.map((item) => (
-          <Link key={item} href={`/settings?tab=${item}`} className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${tab === item ? "bg-navy text-white" : "bg-cloud text-muted"}`}>
+          <PendingLink key={item} href={`/settings?tab=${item}`} className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${tab === item ? "bg-navy text-white" : "bg-cloud text-muted"}`}>
             {t(`settings.tab.${item}`)}
-          </Link>
+          </PendingLink>
         ))}
       </div>
       <Card className="flex flex-col gap-4">

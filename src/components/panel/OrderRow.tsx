@@ -5,6 +5,7 @@ import { formatXAF } from "@/lib/money";
 import type { AdminOrderView } from "@/server/services/order-views";
 import { IconFlag } from "../Icons";
 import { StatusChip } from "../ui";
+import { LinkSpinner } from "./Pending";
 
 export function orderRoute(order: Pick<AdminOrderView, "type" | "originCityName" | "destinationCityName" | "pickup" | "dropoff" | "intercityMode">, tx: (key: string) => string) {
   const short = (text: string) => text.split(/[,\n]/)[0].trim();
@@ -33,6 +34,7 @@ export async function OrderRow({ order, href, selected = false }: { order: Admin
       </div>
       {order.issue.open && <IconFlag size={16} className="shrink-0 text-red" />}
       <span className="hidden sm:inline-flex"><StatusChip status={order.status} label={tx(`status.${order.status}`)} /></span>
+      <LinkSpinner />
       <span className="w-12 shrink-0 text-right text-sm text-muted tabular-nums">{when}</span>
     </Link>
   );

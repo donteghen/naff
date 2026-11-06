@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { BarChart } from "@/components/panel/BarChart";
+import { PendingLink } from "@/components/panel/Pending";
 import { Card, EmptyState, PageTitle, SectionLabel, StatCard } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { formatDuration } from "@/lib/dates";
@@ -67,7 +67,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         actions={
           <div className="flex gap-2">
             {GRANULARITIES.map((item) => (
-              <Link key={item} href={`/reports?by=${item}`} className={`min-h-10 rounded-full px-4 py-2 text-[13px] font-extrabold ${granularity === item ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{t(`reports.by.${item}`)}</Link>
+              <PendingLink key={item} href={`/reports?by=${item}`} className={`min-h-10 rounded-full px-4 py-2 text-[13px] font-extrabold ${granularity === item ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{t(`reports.by.${item}`)}</PendingLink>
             ))}
           </div>
         }

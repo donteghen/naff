@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FilterField } from "@/components/panel/FilterForm";
+import { PendingLink, QueryForm, QuerySubmit } from "@/components/panel/Pending";
 import { Card, PageTitle, SectionLabel, StatCard, buttonClass, inputClass } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { addDays, dayKey } from "@/lib/dates";
@@ -34,16 +35,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageTitle title={t("nav.dashboard")} subtitle={t("dashboard.intro")} />
-      <form method="get" className="flex flex-wrap items-end gap-3 rounded-[18px] bg-white p-4 shadow-[var(--shadow-card)]">
+      <QueryForm className="flex flex-wrap items-end gap-3 rounded-[18px] bg-white p-4 shadow-[var(--shadow-card)]">
         <FilterField label={t("common.from")}><input type="date" name="from" defaultValue={from} className={inputClass()} /></FilterField>
         <FilterField label={t("common.to")}><input type="date" name="to" defaultValue={to} className={inputClass()} /></FilterField>
-        <button type="submit" className={buttonClass("primary", "md")}>{t("common.apply")}</button>
+        <QuerySubmit className={buttonClass("primary", "md")}>{t("common.apply")}</QuerySubmit>
         <div className="flex flex-wrap gap-2">
           {presets.map((preset) => (
-            <Link key={preset.label} href={`/?from=${preset.from}&to=${preset.to}`} className={`min-h-10 rounded-full px-3.5 py-2 text-[13px] font-extrabold ${from === preset.from && to === preset.to ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{preset.label}</Link>
+            <PendingLink key={preset.label} href={`/?from=${preset.from}&to=${preset.to}`} className={`min-h-10 rounded-full px-3.5 py-2 text-[13px] font-extrabold ${from === preset.from && to === preset.to ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{preset.label}</PendingLink>
           ))}
         </div>
-      </form>
+      </QueryForm>
 
       <SectionLabel>{t("dashboard.orders")}</SectionLabel>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">

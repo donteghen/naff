@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { InTransitActions } from "@/components/panel/InTransitActions";
+import { PendingLink } from "@/components/panel/Pending";
 import { Cell, Row, RowActions, RowLink, Table } from "@/components/panel/Table";
 import { Card, EmptyState, PageTitle, StatusChip } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
@@ -22,8 +22,8 @@ export default async function InTransitPage({ searchParams }: { searchParams: Pr
       <PageTitle title={t("transit.title")} subtitle={t("transit.intro")} />
       <Card className="overflow-hidden p-0">
         <div className="flex flex-wrap gap-2 border-b border-line p-3">
-          <Link href="/in-transit" className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${!etaOnly ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{t("queue.all")} {data.total}</Link>
-          <Link href="/in-transit?filter=eta" className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${etaOnly ? "bg-red text-white" : "bg-red-tint text-red-ink"}`}>⚑ {t("transit.etaPassed")} {data.etaPassedCount}</Link>
+          <PendingLink href="/in-transit" className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${!etaOnly ? "bg-navy text-white" : "bg-cloud text-muted"}`}>{t("queue.all")} {data.total}</PendingLink>
+          <PendingLink href="/in-transit?filter=eta" className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${etaOnly ? "bg-red text-white" : "bg-red-tint text-red-ink"}`}>⚑ {t("transit.etaPassed")} {data.etaPassedCount}</PendingLink>
         </div>
         {data.orders.length === 0 ? (
           <EmptyState>{t("transit.empty")}</EmptyState>

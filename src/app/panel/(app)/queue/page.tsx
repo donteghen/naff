@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { ApprovePanel } from "@/components/panel/order/ApprovePanel";
 import { OrderRow } from "@/components/panel/OrderRow";
 import { OrderSummaryCard } from "@/components/panel/OrderSummaryCard";
+import { PendingLink } from "@/components/panel/Pending";
 import { ButtonLink, Card, EmptyState, PageTitle } from "@/components/ui";
 import { getTranslator } from "@/i18n/server";
 import { requireAdminPage } from "@/server/auth/current";
@@ -29,9 +29,9 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         <Card className="overflow-hidden p-0">
           <div className="flex flex-wrap gap-2 border-b border-line p-3">
             {FILTERS.map((item) => (
-              <Link key={item} href={`/queue?filter=${item}`} className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${filter === item ? "bg-navy text-white" : item === "requested" ? "bg-amber-soft text-amber-ink" : item === "issues" ? "bg-red-tint text-red-ink" : "bg-cloud text-muted"}`}>
+              <PendingLink key={item} href={`/queue?filter=${item}`} className={`min-h-9 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold ${filter === item ? "bg-navy text-white" : item === "requested" ? "bg-amber-soft text-amber-ink" : item === "issues" ? "bg-red-tint text-red-ink" : "bg-cloud text-muted"}`}>
                 {t(`queue.${item}`)} {counts[item]}
-              </Link>
+              </PendingLink>
             ))}
           </div>
           {orders.length === 0 ? <EmptyState>{t("queue.empty")}</EmptyState> : orders.map((order) => <OrderRow key={order.id} order={order} href={`/queue?filter=${filter}&id=${order.id}`} selected={order.id === selected?.id} />)}
