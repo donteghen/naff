@@ -5,6 +5,7 @@ import { IconPlus } from "../Icons";
 import { LanguageSwitch } from "../LanguageSwitch";
 import { buttonClass } from "../ui";
 import { LiveAlerts } from "./LiveAlerts";
+import { PanelRefresh } from "./PanelRefresh";
 
 export async function TopBar({ maintenance }: { maintenance: boolean }) {
   const { t } = await getTranslator();
@@ -17,6 +18,7 @@ export async function TopBar({ maintenance }: { maintenance: boolean }) {
       )}
       <div className="flex flex-wrap items-center justify-end gap-2 px-4 pt-4 md:px-6 lg:px-8">
         <Link href="/quick-order" className={buttonClass("action", "sm", "mr-auto md:mr-0")}><IconPlus size={16} />{t("panel.quickOrder")}</Link>
+        <PanelRefresh />
         <LiveAlerts ablyConfigured={config.ablyConfigured()} fallbackToRefresh={config.fallbackToRefresh()} refreshSeconds={config.refreshSeconds()} />
         <span className="hidden md:inline-flex"><LanguageSwitch /></span>
       </div>

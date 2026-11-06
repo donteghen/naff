@@ -81,6 +81,10 @@ export default async function PanelOrderPage({ params }: { params: Promise<{ id:
   }
   const codeMessage = tracking && order.deliveryCode ? codeForReceiverMessage(otx, { number: label, code: order.deliveryCode, link }) : null;
 
+  // The panels below keep what the admin is typing. When the order moves on (status, payment, drivers),
+  // this key changes so they start fresh from the new data: closed forms reset, newly allowed actions appear.
+  const stepKey = [order.status, order.fee.status, order.originDriver?.id, order.destinationDriver?.id, order.originConfirmedAt, order.destinationConfirmedAt].join("|");
+
   const originCanChange = ["approved", "assigned", "driver_confirmed"].includes(order.status);
   const destinationCanChange = order.status !== "requested" && !final && !hasReached(order.status, "collected_at_destination");
 
@@ -96,7 +100,7 @@ export default async function PanelOrderPage({ params }: { params: Promise<{ id:
         }
       />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="flex min-w-0 flex-col gap-4">
+        <div key={stepKey} className="flex min-w-0 flex-col gap-4">
           <OrderSummaryCard order={order} />
 
           {order.status === "requested" && (

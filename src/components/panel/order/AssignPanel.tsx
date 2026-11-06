@@ -38,7 +38,9 @@ export function AssignPanel({
 }) {
   const { t, tx } = useT();
   const { run, pending, error, errorValues } = useAction();
-  const [open, setOpen] = useState(!current);
+  // "Change" opens the list while a driver is assigned; with no driver (declined, unassigned) it is always shown.
+  const [open, setOpen] = useState(false);
+  const showList = canChange && (!current || open);
   const [mode] = useWhatsAppMode();
   const options = drivers.filter((driver) => driver.cityId === cityId && driver.active);
 
@@ -73,7 +75,7 @@ export function AssignPanel({
       ) : (
         <p className="text-sm text-muted">{t("assign.none")}</p>
       )}
-      {open && canChange && (
+      {showList && (
         <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto thin-scroll">
           {options.length === 0 && <li className="text-sm text-muted">{t("assign.noDrivers")}</li>}
           {options.map((driver) => (
